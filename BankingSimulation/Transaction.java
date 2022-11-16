@@ -8,7 +8,7 @@ import Allocator.Allocator;
 import Allocator.AllocatorException;
 
 public class Transaction {
-    private static final boolean ENABLE_ALLOCATOR = true;
+    private static final boolean ENABLE_ALLOCATOR = false;
     static Random random = ThreadLocalRandom.current();
     public static AtomicLong totalSize = new AtomicLong(0);
     public static AtomicLong numTransactions = new AtomicLong(0);
