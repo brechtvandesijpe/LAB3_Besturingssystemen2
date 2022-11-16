@@ -15,11 +15,21 @@ public class Memory {
 
     public Memory(){
         this.memory = new HashMap<>();
-
         for(int i = 3; i < 12; i++){
             memory.put((int) Math.pow(2, i), new ArrayList<>());
         }
     }
+
+    public void addPage(Page p){
+        int pageSize = p.getSize();
+
+    }
+
+    public int getFittingSize(int size){
+
+    }
+
+
 }
 
 
