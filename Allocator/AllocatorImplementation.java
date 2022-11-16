@@ -1,8 +1,6 @@
 package Allocator;
 
-import java.util.NavigableMap;
-import java.util.PriorityQueue;
-import java.util.TreeMap;
+import java.util.*;
 
 public class AllocatorImplementation implements Allocator {
     /* Modify this static var to return an instantiated version of your allocator  */
@@ -10,15 +8,9 @@ public class AllocatorImplementation implements Allocator {
 
     private NavigableMap<Long, Long> alloccedBlocks = new TreeMap<>();
 
-    private NavigableMap<Long, Long> allocatedPages = new TreeMap<>();
-    private PriorityQueue<Page> pages = new PriorityQueue();
     /* Allocates a new region of memory with the specified size */
     public Long allocate(int size) {
-        Long address = BackingStore.getInstance().mmap(size);
-        Long sizeLong = (long) size;
-        alloccedBlocks.put(address, sizeLong);
-        System.out.println("Allocating " + size + " bytes at " + address);
-        return address;
+
     }
 
     /* 
@@ -26,12 +18,7 @@ public class AllocatorImplementation implements Allocator {
      * This memory can be reused to serve future `allocate` requests.
      */
     public void free(Long address) {
-        Long size = alloccedBlocks.get(address);
-        if (size == null)
-            throw new AllocatorException("huh??");
-        alloccedBlocks.remove(address);
-        BackingStore.getInstance().munmap(address, size);
-        System.out.println("Freeing " + size + " bytes at " + address);
+
     }
 
     /*
@@ -47,17 +34,7 @@ public class AllocatorImplementation implements Allocator {
      * but a more optimized implementation is encouraged!
      */
     public Long reAllocate(Long oldAddress, int newSize) {
-//        free(oldAddress);
-//        return allocate(newSize);
 
-        // Increase Size -> Allocate the difference
-        if(newSize - alloccedBlocks.get(oldAddress) > 0){
-            allocate(Math.toIntExact(newSize - alloccedBlocks.get(oldAddress)));
-
-        // Decrease Size -> Free the difference
-        }else{
-            free(oldAddress + alloccedBlocks.get(oldAddress) - newSize);
-        }
     }
     
     /*

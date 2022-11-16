@@ -7,7 +7,6 @@ public class Page {
     final private static int PAGE_SIZE = 4096;
     private Long startAddress;
     private Long currentAddress;
-    HashMap<Long, Integer> addresses;
 
     public Page(Long startAddress){
         this.startAddress = startAddress;
@@ -24,11 +23,6 @@ public class Page {
     public void remove(Long address){
         addresses.remove(address);
 
-    }
-
-
-    public void defragmentation(){
-        for()
     }
 
 }
