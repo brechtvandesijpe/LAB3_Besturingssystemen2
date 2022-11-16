@@ -33,7 +33,7 @@ public class BackingStore {
         assert_true(start >= 0);
         assert_true(size > 0);
 
-        for (var i = start; i < start + size; i += 0x1000L)
+        for (Long i = start; i < start + size; i += 0x1000L)
             if (!isAllocated(i))
                 return false;
         return true;
@@ -46,19 +46,19 @@ public class BackingStore {
     public synchronized Long mmap(long size) {
         Thread.yield();
         assert_true(size > 0);
-        final var numPages = numPages(size);
+        final Long numPages = numPages(size);
         assert_true(numPages > 0);
 
         int searchStart = 0;
         while (true) {
-            var earliestFree = alloccedPages.nextClearBit(searchStart);
+            int earliestFree = alloccedPages.nextClearBit(searchStart);
             assert_true(earliestFree != -1);
-            var until = alloccedPages.nextSetBit(earliestFree);
+            int until = alloccedPages.nextSetBit(earliestFree);
             if (until == -1 || (until - earliestFree) >= numPages) {
-                for (var i = earliestFree; i < earliestFree + numPages; i++) {
+                for (int i = earliestFree; i < earliestFree + numPages; i++) {
                     alloccedPages.set(i, true);
                 }
-                var ret = earliestFree * 0x1000L;
+                Long ret = earliestFree * 0x1000L;
                 // System.out.println("Mapping region [" + ret + ", " + (ret + size) + "[");
                 return ret;
             }
@@ -87,7 +87,7 @@ public class BackingStore {
         Thread.yield();
         // System.out.println("Unmapping region [" + address + ", " + (address + size) + "[");
         assert_true(isAllocated(address, size));
-        for (var a = address;  a < address + size; a += 0x1000L)
+        for (Long a = address;  a < address + size; a += 0x1000L)
             munmapPage(address);
     }
 }

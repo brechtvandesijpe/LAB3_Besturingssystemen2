@@ -1,21 +1,24 @@
 package Allocator;
 
-import java.util.Map;
+import java.util.NavigableMap;
+import java.util.PriorityQueue;
 import java.util.TreeMap;
 
 public class AllocatorImplementation implements Allocator {
     /* Modify this static var to return an instantiated version of your allocator  */
-    static Allocator instance = new MyAllocatorImpl();
+    private static Allocator instance = new MyAllocatorImpl();
 
-    private static BackingStore backingStore = BackingStore.getInstance();
+    private NavigableMap<Long, Long> alloccedBlocks = new TreeMap<>();
 
-    private static Map<Long, Long> allocated_blocks = new TreeMap<>();    
-
+    private NavigableMap<Long, Long> allocatedPages = new TreeMap<>();
+    private PriorityQueue<Page> pages = new PriorityQueue();
     /* Allocates a new region of memory with the specified size */
     public Long allocate(int size) {
-        Long allocated_block = backingStore.mmap(size);
-        allocated_blocks.put(allocated_block, (long) size);
-        return allocated_block;
+        Long address = BackingStore.getInstance().mmap(size);
+        Long sizeLong = (long) size;
+        alloccedBlocks.put(address, sizeLong);
+        System.out.println("Allocating " + size + " bytes at " + address);
+        return address;
     }
 
     /* 
@@ -23,8 +26,12 @@ public class AllocatorImplementation implements Allocator {
      * This memory can be reused to serve future `allocate` requests.
      */
     public void free(Long address) {
-        backingStore.munmap(address, allocated_blocks.get(address));
-        allocated_blocks.remove(address);
+        Long size = alloccedBlocks.get(address);
+        if (size == null)
+            throw new AllocatorException("huh??");
+        alloccedBlocks.remove(address);
+        BackingStore.getInstance().munmap(address, size);
+        System.out.println("Freeing " + size + " bytes at " + address);
     }
 
     /*
@@ -40,10 +47,17 @@ public class AllocatorImplementation implements Allocator {
      * but a more optimized implementation is encouraged!
      */
     public Long reAllocate(Long oldAddress, int newSize) {
-        allocated_blocks.remove(oldAddress);
-        Long newAddress = backingStore.mmap(newSize);
-        allocated_blocks.put(newAddress, (long) newSize);
-        return newAddress;
+//        free(oldAddress);
+//        return allocate(newSize);
+
+        // Increase Size -> Allocate the difference
+        if(newSize - alloccedBlocks.get(oldAddress) > 0){
+            allocate(Math.toIntExact(newSize - alloccedBlocks.get(oldAddress)));
+
+        // Decrease Size -> Free the difference
+        }else{
+            free(oldAddress + alloccedBlocks.get(oldAddress) - newSize);
+        }
     }
     
     /*
@@ -55,11 +69,7 @@ public class AllocatorImplementation implements Allocator {
      * type of allocator.
      */
     public boolean isAccessible(Long address) {
-        for(Map.Entry<Long, Long> entry : allocated_blocks.entrySet()) {
-            if(address >= entry.getKey() && address < entry.getKey() + entry.getValue())
-                return true;
-        }
-        return false;
+
     }
 
     /*
@@ -70,10 +80,6 @@ public class AllocatorImplementation implements Allocator {
      * in the range belong to the same block of memory. 
      */
     public boolean isAccessible(Long address, int size) {
-        for(Map.Entry<Long, Long> entry : allocated_blocks.entrySet()) {
-            if(address >= entry.getKey() && address + size < entry.getKey() + entry.getValue())
-                return true;
-        }
-        return false;
+
     }
 }
