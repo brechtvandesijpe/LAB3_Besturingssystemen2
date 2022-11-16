@@ -2,11 +2,11 @@ package Allocator;
 
 public class AllocatorImplementation implements Allocator {
     /* Modify this static var to return an instantiated version of your allocator  */
-    static Allocator instance = new MyAllocatorImpl();
+    private static Allocator instance = new MyAllocatorImpl();
 
     /* Allocates a new region of memory with the specified size */
     public Long allocate(int size) {
-
+        
     }
 
     /* 
