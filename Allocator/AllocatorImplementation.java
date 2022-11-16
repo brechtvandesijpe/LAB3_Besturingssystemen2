@@ -1,8 +1,13 @@
 package Allocator;
 
+import java.util.Map;
+import java.util.HashMap;
+
 public class AllocatorImplementation implements Allocator {
     /* Modify this static var to return an instantiated version of your allocator  */
     private static Allocator instance = new MyAllocatorImpl();
+
+    private static BackingStore backingStore = BackingStore.getInstance();
 
     /* Allocates a new region of memory with the specified size */
     public Long allocate(int size) {
