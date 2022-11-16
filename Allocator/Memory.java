@@ -10,7 +10,7 @@ import java.util.List;
 
 public class Memory {
     // First fitting size, list of blocks
-    private HashMap<Integer, List<Page>> memory;
+    private HashMap<Integer, List<Block>> memory;
     private static final int AMOUNT_OF_BLOCKS = 10;
 
     public Memory(){
