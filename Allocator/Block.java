@@ -1,6 +1,7 @@
 package Allocator;
 
 import java.util.BitSet;
+import java.util.concurrent.*;
 
 public class Block {
     public static final int UNIT_BLOCK_SIZE = 4096;
@@ -8,6 +9,8 @@ public class Block {
     private final Long startAddress;
     private final int pageSize;
     private final int blockSize;
+
+    private Semaphore blockEntry;
     
     private BitSet allocatedPages;
 
@@ -25,6 +28,8 @@ public class Block {
         this.pageSize = pageSize;
         this.blockSize = blockSize;
         
+        blockEntry = new Semaphore(1);
+
         allocatedPages = new BitSet();
     }
 
@@ -60,11 +65,14 @@ public class Block {
      *
      */
 
-    public Long getPage() throws AllocatorException {
+    public Long getPage() throws AllocatorException, InterruptedException {
         for(int i = 0; i < blockSize; i += pageSize){
             int pageIndex = i / pageSize;
-            if(!allocatedPages.get(pageIndex)){
+            if(!allocatedPages.get(pageIndex)) {
+                blockEntry.acquire();
                 allocatedPages.set(pageIndex);
+                blockEntry.release();
+
                 return startAddress + i;
             }
         }
@@ -80,14 +88,17 @@ public class Block {
      * 
      */
 
-    public void freePage(Long address) throws AllocatorException, EmptyBlockException {
+    public void freePage(Long address) throws AllocatorException, EmptyBlockException, InterruptedException {
         Long relativeAddress = address - startAddress;
 
         if(relativeAddress < 0)
             throw new AllocatorException("Page not present in block");
         
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
+
+        blockEntry.acquire();
         allocatedPages.set(pageIndex, false);
+        blockEntry.release();
 
         if(allocatedPages.isEmpty())
             throw new EmptyBlockException("Block is empty");

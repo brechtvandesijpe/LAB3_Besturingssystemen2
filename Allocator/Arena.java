@@ -57,8 +57,15 @@ public class Arena {
 
     public Long getPage() {
         for(Block block : memoryBlocks){
-            if(block.hasFreePages())
-                return block.getPage();
+            if(block.hasFreePages()) {
+                try {
+                    return block.getPage();
+                } catch(AllocatorException e) {
+                    System.out.println(e.getMessage());
+                } catch(InterruptedException e) {
+                    System.out.println(e.getMessage());
+                }
+            }
         }
 
         memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
@@ -79,9 +86,11 @@ public class Arena {
             if(block.isAccessible(address)) {
                 try {
                     block.freePage(address);
-                } catch (EmptyBlockException e) {
+                } catch(EmptyBlockException e) {
                     memoryBlocks.remove(block);
                     backingStore.munmap(block.getStartAddress(), block.getBlockSize());
+                } catch(InterruptedException e) {
+                    System.out.println(e.getMessage());
                 }
 
                 return;
