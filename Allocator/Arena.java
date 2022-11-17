@@ -55,7 +55,7 @@ public class Arena {
      * 
      */
 
-    public Long getPage() {
+    public synchronized Long getPage() {
         for(Block block : memoryBlocks){
             if(block.hasFreePages()) {
                 try {
@@ -81,7 +81,7 @@ public class Arena {
      * 
      */
 
-    public void freePage(Long address) throws AllocatorException {
+    public synchronized void freePage(Long address) throws AllocatorException {
         for(Block block : memoryBlocks){
             if(block.isAccessible(address)) {
                 try {
@@ -109,7 +109,7 @@ public class Arena {
      * 
      */
 
-    public boolean isAccessible(Long address) {
+    public synchronized boolean isAccessible(Long address) {
         for(Block block : memoryBlocks){
             if(block.isAccessible(address))
                 return true;

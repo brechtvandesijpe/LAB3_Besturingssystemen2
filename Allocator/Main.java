@@ -21,20 +21,20 @@ class Worker extends Thread {
         int amount = random.nextInt(8,10000);
 
         Long address = allocator.allocate(amount);
-        System.out.println("Allocated " + amount + " bytes at " + address + "[" + id + "]");
+        System.out.println("Allocated " + amount + " bytes at " + address + " [" + id + "]");
 
         try {
             Thread.sleep(500);
         } catch (InterruptedException e) {}
 
-        System.out.println(allocator.isAccessible(address) + "[" + id + "]");
+        System.out.println(allocator.isAccessible(address) + " [" + id + "]");
         
         try {
             Thread.sleep(500);
         } catch (InterruptedException e) {}
 
         allocator.free(address);
-        System.out.println("Freed " + amount + " bytes at " + address + "[" + id + "]");
+        System.out.println("Freed " + amount + " bytes at " + address + " [" + id + "]");
     }
 }
 
@@ -45,7 +45,7 @@ public class Main {
         for(int i = 0; i < 5; i++) {
             new Worker().start();
         }
-        
+
     }
 
 }
