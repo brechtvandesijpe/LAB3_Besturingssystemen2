@@ -18,23 +18,25 @@ class Worker extends Thread {
     }
 
     public void run() {
-        int amount = random.nextInt(8,10000);
+        while(true) {
+            int amount = random.nextInt(8,10000);
 
-        Long address = allocator.allocate(amount);
-        System.out.println("Allocated " + amount + " bytes at " + address + " [" + id + "]");
+            Long address = allocator.allocate(amount);
+            System.out.println("Allocated " + amount + " bytes at " + address + " [" + id + "]");
 
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {}
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {}
 
-        System.out.println(allocator.isAccessible(address) + " [" + id + "]");
-        
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {}
+            System.out.println(allocator.isAccessible(address) + " [" + id + "]");
+            
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {}
 
-        allocator.free(address);
-        System.out.println("Freed " + amount + " bytes at " + address + " [" + id + "]");
+            allocator.free(address);
+            System.out.println("Freed " + amount + " bytes at " + address + " [" + id + "]");
+        }
     }
 }
 
