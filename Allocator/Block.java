@@ -3,11 +3,11 @@ package Allocator;
 import java.util.BitSet;
 
 public class Block {
-    public static final int BLOCK_SIZE = 4096;
+    public static final int UNIT_BLOCK_SIZE = 4096;
 
     private final Long startAddress;
     private final int pageSize;
-    private final Long rootAddress;
+    private final int blockSize;
     
     private BitSet allocatedPages;
 
@@ -20,27 +20,36 @@ public class Block {
      * 
      */
 
-    public Block(Long startAddress, int pageSize){
+    public Block(Long startAddress, int pageSize, int blockSize) {
         this.startAddress = startAddress;
         this.pageSize = pageSize;
+        this.blockSize = blockSize;
+        
         allocatedPages = new BitSet();
-        this.rootAddress = startAddress;
     }
 
     /**
      * 
-     * @param startAddress
-     * @param pageSize
-     * @param rootAddress
+     * @return
      * 
-     * Constructor for a block with a different root address than  startAddress.
+     * Get start address of the block.
+     * 
      */
 
-    public Block(Long startAddress, int pageSize, Long rootAddress){
-        this.startAddress = startAddress;
-        this.pageSize = pageSize;
-        allocatedPages = new BitSet();
-        this.rootAddress = rootAddress;
+    public Long getStartAddress() {
+        return startAddress;
+    }
+
+    /**
+     * 
+     * @return
+     * 
+     * Get the size of the block.
+     * 
+     */
+
+    public int getBlockSize() {
+        return blockSize;
     }
 
     /**
@@ -52,7 +61,7 @@ public class Block {
      */
 
     public Long getPage() throws AllocatorException {
-        for(int i = 0; i < BLOCK_SIZE; i += pageSize){
+        for(int i = 0; i < blockSize; i += pageSize){
             int pageIndex = i / pageSize;
             if(!allocatedPages.get(pageIndex)){
                 allocatedPages.set(pageIndex);
@@ -71,7 +80,7 @@ public class Block {
      * 
      */
 
-    public void freePage(Long address) throws AllocatorException {
+    public void freePage(Long address) throws AllocatorException, EmptyBlockException {
         Long relativeAddress = address - startAddress;
 
         if(relativeAddress < 0)
@@ -79,6 +88,9 @@ public class Block {
         
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
         allocatedPages.set(pageIndex, false);
+
+        if(allocatedPages.isEmpty())
+            throw new EmptyBlockException("Block is empty");
     }
 
     /**
@@ -90,8 +102,8 @@ public class Block {
      */
 
     public boolean hasFreePages(){
-        for(int i = 0; i < BLOCK_SIZE / pageSize; i++) {
-            if(allocatedPages.get(i))
+        for(int i = 0; i < blockSize / pageSize; i++) {
+            if(!allocatedPages.get(i))
                 return true;
         }
 

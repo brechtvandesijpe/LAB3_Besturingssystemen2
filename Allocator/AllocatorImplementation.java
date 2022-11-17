@@ -6,24 +6,23 @@ public class AllocatorImplementation implements Allocator {
     /* Modify this static var to return an instantiated version of your allocator  */
     private static Allocator instance = null;
 
-    private static BackingStore backingStore = null;
-
     private HashMap<Integer, Arena> pageSizes;
 
     /**
      * 
      * @param size
+     * @param root
      * @return
      * 
-     * Method to get the next biggest pagesize of a random given size.
+     * Method to get the next biggest multiple of the root number
      * 
      */
 
-    private int roundUp(int size){
-        return (int) Math.pow(2, Math.ceil(Math.log(size) / Math.log(2)));
+    public static int roundUp(int size, int root){
+        return (int) Math.pow(root, Math.ceil(Math.log(size) / Math.log(root)));
     }
 
-    private Allocator getInstance() {
+    public static Allocator getInstance() {
         if (instance == null)
             instance = new AllocatorImplementation();
         return instance;
@@ -34,21 +33,47 @@ public class AllocatorImplementation implements Allocator {
 
         for(int i = 3; i < 12; i++) {
             int pageSize = (int) Math.pow(2, i);
-            pageSizes.put(pageSize, new Arena(pageSize));
+            pageSizes.put(pageSize, new Arena(Block.UNIT_BLOCK_SIZE, pageSize));
         }
-
-        backingStore = BackingStore.getInstance();
     }
 
-    /* Allocates a new region of memory with the specified size */
+    /**
+     * 
+     * @param size
+     * @return
+     * 
+     * Allocates a new region of memory with the specified size
+     * 
+     */
+
     public Long allocate(int size) {
-        int roundedSize = roundUp(size);
+        int roundedSize = roundUp(size, 2);
         
-        if(roundedSize <= 2048)
+        if(roundedSize <= Block.UNIT_BLOCK_SIZE / 2)
             pageSizes.get(roundedSize).getPage();
         else {
-            pageSizes.put(roundedSize, new Arena(Block.BLOCK_SIZE, Math.ceil(roundedSize / Block.BLOCK_SIZE)));
+            roundedSize = roundUp(size, Block.UNIT_BLOCK_SIZE);
+            pageSizes.put(roundedSize, new Arena(roundedSize));
         }
+
+        return pageSizes.get(roundedSize).getPage();
+    }
+
+    /**
+     * 
+     * @param address
+     * 
+     * Method to get the arena of a memory-address
+     * 
+     */
+
+    private Arena getLocation(Long address) {
+        for(Arena arena : pageSizes.values()) {
+            if(arena.isAccessible(address))
+                return arena;
+        }
+
+        return null;
     }
 
     /**
@@ -58,10 +83,13 @@ public class AllocatorImplementation implements Allocator {
      * 
      * Releases the region of memory pointed to by `address`.
      * This memory can be reused to serve future `allocate` requests.
+     * 
      */
 
     public void free(Long address) {
-
+        Arena arena = getLocation(address);
+        if(arena != null)
+            arena.freePage(address);
     }
 
     /**
@@ -80,10 +108,13 @@ public class AllocatorImplementation implements Allocator {
      * 
      * It is allowed for this method to return new memory every time, 
      * but a more optimized implementation is encouraged!
+     * 
      */
 
     public Long reAllocate(Long oldAddress, int newSize) {
-
+        Long newAddress = allocate(newSize);
+        free(oldAddress);
+        return newAddress;
     }
     
     /**
@@ -97,6 +128,7 @@ public class AllocatorImplementation implements Allocator {
      * This method is used by us to test your implementation. 
      * You still have to implement it yourselves, specifically for your
      * type of allocator.
+     * 
      */
 
     public boolean isAccessible(Long address) {
@@ -119,9 +151,11 @@ public class AllocatorImplementation implements Allocator {
      * 
      * In addition, this method should verify that all addresses 
      * in the range belong to the same block of memory. 
+     * 
      */
 
     public boolean isAccessible(Long address, int size) {
         Arena arena = pageSizes.get(size);
+        return arena.isAccessible(address);
     }
 }

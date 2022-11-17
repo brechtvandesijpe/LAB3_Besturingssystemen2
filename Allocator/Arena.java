@@ -3,30 +3,48 @@ package Allocator;
 import java.util.LinkedList;
 
 public class Arena {
-    // First fitting size, list of blocks
+    // list of blocks
     private LinkedList<Block> memoryBlocks;
 
     private BackingStore backingStore;
 
-    private static int blockSize;
+    // size of the blocks in de arena
+    private int blockSize;
+
+    // size of the pages in the blocks of the arena
+    private int pageSize;
+
+    /**
+     * 
+     * @param blockSize
+     * 
+     * Constructor for an arena with an equal block and page size.
+     * 
+     */
 
     public Arena(int blockSize){
-        // TODO correcte implementatie
+        this.blockSize = blockSize;
+        this.pageSize = blockSize;
+
         memoryBlocks = new LinkedList<>();
         backingStore = BackingStore.getInstance();
-        Arena.blockSize = blockSize;
+    }
 
-        if(blockSize > Block.BLOCK_SIZE) {
-            Long rootAddress = backingStore.mmap(blockSize);
-            Block b = new Block(rootAddress, Block.BLOCK_SIZE);
-            memoryBlocks.add(b);
+    /**
+     * 
+     * @param blockSize
+     * @param pageSize
+     * 
+     * Constructor for an arena with a specific block and page size.
+     * 
+     */
 
-            for(int i = 0; i < blockSize / Block.BLOCK_SIZE; i++) {
-                Long startAddress = backingStore.munmap();
-                Block b = new Block(rootAddress, Block.BLOCK_SIZE);
-            }
+    public Arena(int blockSize, int pageSize){
+        this.blockSize = blockSize;
+        this.pageSize = pageSize;
 
-        }
+        memoryBlocks = new LinkedList<>();
+        backingStore = BackingStore.getInstance();
     }
 
     /**
@@ -43,22 +61,29 @@ public class Arena {
                 return block.getPage();
         }
 
-        memoryBlocks.add(new Block(backingStore.mmap(Block.BLOCK_SIZE), blockSize));
+        memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
         return getPage();
     }
 
     /**
      * 
      * @param address
+     * @throws AllocatorException
      * 
      * Method to free a page from the arena.
      * 
      */
 
-    public void freePage(Long address) {
+    public void freePage(Long address) throws AllocatorException {
         for(Block block : memoryBlocks){
-            if(block.isAccessible(address)){
-                block.freePage(address);
+            if(block.isAccessible(address)) {
+                try {
+                    block.freePage(address);
+                } catch (EmptyBlockException e) {
+                    memoryBlocks.remove(block);
+                    backingStore.munmap(block.getStartAddress(), block.getBlockSize());
+                }
+
                 return;
             }
         }
