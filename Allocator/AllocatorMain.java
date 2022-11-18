@@ -25,7 +25,7 @@ class Worker extends Thread {
             int amount = random.nextInt(8,10000);
 
             Long address = allocator.allocate(amount);
-            logger.log("Allocated " + amount + " bytes at " + address + " [" + id + "]");
+            // logger.log("Allocated " + amount + " bytes at " + address + " [" + id + "]");
 
             try {
                 Thread.sleep(random.nextInt(250,2000));
@@ -38,14 +38,14 @@ class Worker extends Thread {
             } catch (InterruptedException e) {}
 
             allocator.free(address);
-            logger.log("Freed " + amount + " bytes at " + address + " [" + id + "]");
+            // logger.log("Freed " + amount + " bytes at " + address + " [" + id + "]");
         }
     }
 }
 
 public class AllocatorMain {
     public static void main(String[] args) {
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < 10; i++) {
             new Worker().start();
         }
     }   
