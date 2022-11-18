@@ -1,12 +1,17 @@
 package Allocator;
 
 import java.util.LinkedList;
+import java.util.concurrent.*;
 
 public class Arena {
+    private final static int numReaders = 5;
+
     // list of blocks
     private LinkedList<Block> memoryBlocks;
 
     private BackingStore backingStore;
+
+    private RWSemaphore blockAccess;
 
     // size of the blocks in de arena
     private int blockSize;
@@ -23,11 +28,13 @@ public class Arena {
      */
 
     public Arena(int blockSize){
-        this.blockSize = blockSize;
-        this.pageSize = blockSize;
-
         memoryBlocks = new LinkedList<>();
         backingStore = BackingStore.getInstance();
+
+        blockAccess = new RWSemaphore(numReaders);
+
+        this.blockSize = blockSize;
+        this.pageSize = blockSize;
     }
 
     /**
@@ -40,11 +47,13 @@ public class Arena {
      */
 
     public Arena(int blockSize, int pageSize){
-        this.blockSize = blockSize;
-        this.pageSize = pageSize;
-
         memoryBlocks = new LinkedList<>();
         backingStore = BackingStore.getInstance();
+        
+        blockAccess = new RWSemaphore(numReaders);
+
+        this.blockSize = blockSize;
+        this.pageSize = pageSize;
     }
 
     /**
@@ -55,20 +64,25 @@ public class Arena {
      * 
      */
 
-    public synchronized Long getPage() {
+    public Long getPage() {
+        blockAccess.enterReader();
+        
         for(Block block : memoryBlocks){
             if(block.hasFreePages()) {
                 try {
                     return block.getPage();
                 } catch(AllocatorException e) {
                     System.out.println(e.getMessage());
-                } catch(InterruptedException e) {
-                    System.out.println(e.getMessage());
                 }
             }
         }
 
+        blockAccess.leaveReader();
+
+        blockAccess.enterWriter();
         memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
+        blockAccess.leaveWriter();
+
         return getPage();
     }
 
@@ -81,21 +95,26 @@ public class Arena {
      * 
      */
 
-    public synchronized void freePage(Long address) throws AllocatorException {
+    public void freePage(Long address) throws AllocatorException {
+        blockAccess.enterReader();
+
         for(Block block : memoryBlocks){
             if(block.isAccessible(address)) {
                 try {
                     block.freePage(address);
                 } catch(EmptyBlockException e) {
+                    blockAccess.enterWriter();
                     memoryBlocks.remove(block);
+                    blockAccess.leaveWriter();
+
                     backingStore.munmap(block.getStartAddress(), block.getBlockSize());
-                } catch(InterruptedException e) {
-                    System.out.println(e.getMessage());
                 }
 
                 return;
             }
         }
+
+        blockAccess.leaveReader();
 
         throw new AllocatorException("Page not present in arena");
     }
@@ -109,11 +128,15 @@ public class Arena {
      * 
      */
 
-    public synchronized boolean isAccessible(Long address) {
+    public boolean isAccessible(Long address) {
+        blockAccess.enterReader();
+
         for(Block block : memoryBlocks){
             if(block.isAccessible(address))
                 return true;
         }
+
+        blockAccess.leaveReader();
 
         return false;
     }

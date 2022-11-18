@@ -1,15 +1,12 @@
 package Allocator;
 
 import java.util.*;
-import java.util.concurrent.*;
 
 public class AllocatorImplementation implements Allocator {
     /* Modify this static var to return an instantiated version of your allocator  */
     private static Allocator instance = null;
 
     private HashMap<Integer, Arena> pageSizes;
-
-    private Semaphore pageLock;
 
     /**
      * 
@@ -37,9 +34,7 @@ public class AllocatorImplementation implements Allocator {
         for(int i = 3; i < 12; i++) {
             int pageSize = (int) Math.pow(2, i);
             pageSizes.put(pageSize, new Arena(Block.UNIT_BLOCK_SIZE, pageSize));
-        }
-        
-        pageLock = new Semaphore(1);
+        }    
     }
 
     /**
@@ -58,14 +53,7 @@ public class AllocatorImplementation implements Allocator {
             pageSizes.get(roundedSize).getPage();
         else {
             roundedSize = roundUp(size, Block.UNIT_BLOCK_SIZE);
-
-            try {
-                pageLock.acquire();
-                pageSizes.put(roundedSize, new Arena(roundedSize));
-                pageLock.release();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            pageSizes.put(roundedSize, new Arena(roundedSize));
         }
 
         return pageSizes.get(roundedSize).getPage();

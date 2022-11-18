@@ -1,6 +1,6 @@
 package Allocator;
 
-import java.util.*;
+import java.util.Random;
 
 class Worker extends Thread {
     private static int count = 0;
@@ -10,11 +10,14 @@ class Worker extends Thread {
     private Random random;
 
     private int id;
+
+    private Logger logger;
     
     public Worker() {
         allocator = AllocatorImplementation.getInstance();
         random = new Random();
         id = count++;
+        logger = Logger.getInstance();
     }
 
     public void run() {
@@ -22,32 +25,28 @@ class Worker extends Thread {
             int amount = random.nextInt(8,10000);
 
             Long address = allocator.allocate(amount);
-            System.out.println("Allocated " + amount + " bytes at " + address + " [" + id + "]");
+            logger.log("Allocated " + amount + " bytes at " + address + " [" + id + "]");
 
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {}
 
-            System.out.println(allocator.isAccessible(address) + " [" + id + "]");
+            logger.log(allocator.isAccessible(address) + " [" + id + "]");
             
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {}
 
             allocator.free(address);
-            System.out.println("Freed " + amount + " bytes at " + address + " [" + id + "]");
+            logger.log("Freed " + amount + " bytes at " + address + " [" + id + "]");
         }
     }
 }
 
-public class Main {
- 
+public class AllocatorMain {
     public static void main(String[] args) {
-        
-        for(int i = 0; i < 5; i++) {
+        for(int i = 0; i < 10; i++) {
             new Worker().start();
         }
-
-    }
-
+    }   
 }

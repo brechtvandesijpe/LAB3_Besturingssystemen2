@@ -10,9 +10,9 @@ public class Block {
     private final int pageSize;
     private final int blockSize;
 
-    private Semaphore blockEntry;
-    
     private BitSet allocatedPages;
+
+    private Semaphore pageAccess;
 
     /**
      * 
@@ -27,10 +27,9 @@ public class Block {
         this.startAddress = startAddress;
         this.pageSize = pageSize;
         this.blockSize = blockSize;
-        
-        blockEntry = new Semaphore(1);
 
         allocatedPages = new BitSet();
+        pageAccess = new Semaphore(1);
     }
 
     /**
@@ -65,17 +64,29 @@ public class Block {
      *
      */
 
-    public Long getPage() throws AllocatorException, InterruptedException {
+    public Long getPage() throws AllocatorException {
+        Long output = null;
+
         for(int i = 0; i < blockSize; i += pageSize){
             int pageIndex = i / pageSize;
-            if(!allocatedPages.get(pageIndex)) {
-                blockEntry.acquire();
-                allocatedPages.set(pageIndex);
-                blockEntry.release();
+            
+            try {
+                pageAccess.acquire();
+                
+                if(!allocatedPages.get(pageIndex)) {
+                    allocatedPages.set(pageIndex);
+                    output = startAddress + i;
+                    break;
+                }
 
-                return startAddress + i;
+                pageAccess.release();
+            } catch(InterruptedException e) {
+                System.out.println(e.getMessage());
             }
         }
+
+        if(output != null)
+            return output;
 
         throw new AllocatorException("No free pages in block");
     }
@@ -88,19 +99,28 @@ public class Block {
      * 
      */
 
-    public void freePage(Long address) throws AllocatorException, EmptyBlockException, InterruptedException {
+    public void freePage(Long address) throws AllocatorException, EmptyBlockException {
         Long relativeAddress = address - startAddress;
+        boolean empty = false;
 
         if(relativeAddress < 0)
             throw new AllocatorException("Page not present in block");
         
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
 
-        blockEntry.acquire();
-        allocatedPages.set(pageIndex, false);
-        blockEntry.release();
+        try {
+            pageAccess.acquire();
+            allocatedPages.set(pageIndex, false);
+            
+            if(allocatedPages.isEmpty())
+                empty = true;
+            
+            pageAccess.release();
+        } catch(InterruptedException e) {
+            System.out.println(e.getMessage());
+        }
 
-        if(allocatedPages.isEmpty())
+        if(empty)
             throw new EmptyBlockException("Block is empty");
     }
 
@@ -112,13 +132,25 @@ public class Block {
      * 
      */
 
-    public boolean hasFreePages(){
-        for(int i = 0; i < blockSize / pageSize; i++) {
-            if(!allocatedPages.get(i))
-                return true;
+    public boolean hasFreePages() {
+        boolean output = false;
+        
+        try {
+            pageAccess.acquire();
+            
+            for(int i = 0; i < blockSize / pageSize; i++) {
+                if(!allocatedPages.get(i)) {
+                    output = true;
+                    break;
+                }
+            }
+            
+            pageAccess.release();
+        } catch(InterruptedException e) {
+            System.out.println(e.getMessage());
         }
-
-        return false;
+        
+        return output;
     }
 
     /**
@@ -132,11 +164,20 @@ public class Block {
 
     public boolean isAccessible(Long address) {
         Long relativeAddress = address - startAddress;
+        boolean output = false;
 
-        if(relativeAddress < 0)
-            return false;
+        if(relativeAddress > 0) {    
+            int pageIndex = (int) Math.floor(relativeAddress / pageSize);
+            
+            try {
+                pageAccess.acquire();
+                output =  allocatedPages.get(pageIndex);
+                pageAccess.release();
+            } catch(InterruptedException e) {
+                System.out.println(e.getMessage());
+            }
+        }
         
-        int pageIndex = (int) Math.floor(relativeAddress / pageSize);
-        return allocatedPages.get(pageIndex);
+        return output;
     }
 }
