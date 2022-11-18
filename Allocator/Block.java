@@ -1,6 +1,7 @@
 package Allocator;
 
 import java.util.BitSet;
+import java.util.concurrent.*;
 
 public class Block {
     public static final int UNIT_BLOCK_SIZE = 4096;
@@ -10,6 +11,8 @@ public class Block {
     private final int blockSize;
     
     private BitSet allocatedPages;
+
+    private Semaphore mutex;
 
     /**
      * 
@@ -26,6 +29,7 @@ public class Block {
         this.blockSize = blockSize;
         
         allocatedPages = new BitSet();
+        mutex = new Semaphore(1);
     }
 
     /**
@@ -63,10 +67,14 @@ public class Block {
     public Long getPage() throws AllocatorException {
         for(int i = 0; i < blockSize; i += pageSize){
             int pageIndex = i / pageSize;
-            if(!allocatedPages.get(pageIndex)){
-                allocatedPages.set(pageIndex);
-                return startAddress + i;
-            }
+            try {
+                mutex.acquire();
+                if(!allocatedPages.get(pageIndex)){
+                    allocatedPages.set(pageIndex);
+                    return startAddress + i;
+                }
+                mutex.release();
+            } catch(InterruptedException e) {}
         }
 
         throw new AllocatorException("No free pages in block");
@@ -87,12 +95,18 @@ public class Block {
             throw new AllocatorException("Page not present in block");
         
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
-        allocatedPages.set(pageIndex, false);
 
-        if(allocatedPages.isEmpty())
+        try {
+            mutex.acquire();
+            allocatedPages.set(pageIndex, false);
+            
+            if(allocatedPages.isEmpty())
             throw new EmptyBlockException("Block is empty");
+            
+            mutex.release();
+        } catch(InterruptedException e) {}
     }
-
+        
     /**
      * @param address
      * @return
@@ -103,8 +117,13 @@ public class Block {
 
     public boolean hasFreePages(){
         for(int i = 0; i < blockSize / pageSize; i++) {
-            if(!allocatedPages.get(i))
-                return true;
+            try {
+                mutex.acquire();
+                if(!allocatedPages.get(i))
+                    return true;
+                    
+                mutex.release();
+            } catch(InterruptedException e) {}
         }
 
         return false;
@@ -122,10 +141,19 @@ public class Block {
     public boolean isAccessible(Long address) {
         Long relativeAddress = address - startAddress;
 
-        if(relativeAddress < 0)
-            return false;
+        boolean output = false;
         
-        int pageIndex = (int) Math.floor(relativeAddress / pageSize);
-        return allocatedPages.get(pageIndex);
+        if(relativeAddress >= 0) {
+            try {
+                mutex.acquire();
+
+                int pageIndex = (int) Math.floor(relativeAddress / pageSize);
+                output = allocatedPages.get(pageIndex);
+
+                mutex.release();
+            } catch(InterruptedException e) {}
+        }
+
+        return output;
     }
 }

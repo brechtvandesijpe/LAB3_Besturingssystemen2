@@ -21,6 +21,8 @@ class Worker extends Thread {
     }
 
     public void run() {
+        logger.log(id + " run");
+        
         while(true) {
             int amount = random.nextInt(8,10000);
 
@@ -45,7 +47,7 @@ class Worker extends Thread {
 
 public class AllocatorMain {
     public static void main(String[] args) {
-        for(int i = 0; i < 1; i++) {
+        for(int i = 0; i < 2 ; i++) {
             new Worker().start();
         }
     }   
