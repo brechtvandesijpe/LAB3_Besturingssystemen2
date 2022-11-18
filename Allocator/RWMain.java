@@ -1,6 +1,6 @@
 package Allocator;
 
-import java.util.*;
+import java.util.Random;
 
 class Data {
     private int data;
@@ -29,6 +29,8 @@ class Reader extends Thread {
 
     private Data data;
 
+    private static Random random = new Random();
+
     public Reader(RWSemaphore semaphore, Data data) {
         id = count++;
         this.semaphore = semaphore;
@@ -42,7 +44,7 @@ class Reader extends Thread {
             logger.log("Reader " + id + " is reading: " + data.getData());
             semaphore.leaveReader();
             try {
-                Thread.sleep(1000);
+                Thread.sleep(random.nextInt(0,2000));
             } catch (InterruptedException e) {}
         }
     }
@@ -59,6 +61,8 @@ class Writer extends Thread {
     
     private Data data;
 
+    private static Random random = new Random();
+
     public Writer(RWSemaphore semaphore, Data data) {
         id = count++;
         this.semaphore = semaphore;
@@ -73,7 +77,7 @@ class Writer extends Thread {
             logger.log("Writer " + id + " is writing: " + data.getData());
             semaphore.leaveWriter();
             try {
-                Thread.sleep(1000);
+                Thread.sleep(random.nextInt(500,2500));
             } catch (InterruptedException e) {}
         }
     }
@@ -86,7 +90,7 @@ public class RWMain {
 
         Data data = new Data(0);
 
-        for(int i = 0; i < 3; i++) {
+        for(int i = 0; i < 8; i++) {
             new Reader(semaphore, data).start();
             new Writer(semaphore, data).start();
         }

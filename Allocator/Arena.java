@@ -1,7 +1,6 @@
 package Allocator;
 
 import java.util.LinkedList;
-import java.util.concurrent.*;
 
 public class Arena {
     private final static int numReaders = 5;
@@ -11,7 +10,7 @@ public class Arena {
 
     private BackingStore backingStore;
 
-    private RWSemaphore blockAccess;
+    // private RWSemaphore blockAccess;
 
     // size of the blocks in de arena
     private int blockSize;
@@ -31,7 +30,7 @@ public class Arena {
         memoryBlocks = new LinkedList<>();
         backingStore = BackingStore.getInstance();
 
-        blockAccess = new RWSemaphore(numReaders);
+        // blockAccess = new RWSemaphore(numReaders);
 
         this.blockSize = blockSize;
         this.pageSize = blockSize;
@@ -50,7 +49,7 @@ public class Arena {
         memoryBlocks = new LinkedList<>();
         backingStore = BackingStore.getInstance();
         
-        blockAccess = new RWSemaphore(numReaders);
+        // blockAccess = new RWSemaphore(numReaders);
 
         this.blockSize = blockSize;
         this.pageSize = pageSize;
@@ -65,7 +64,7 @@ public class Arena {
      */
 
     public Long getPage() {
-        blockAccess.enterReader();
+        // blockAccess.enterReader();
         
         for(Block block : memoryBlocks){
             if(block.hasFreePages()) {
@@ -77,11 +76,11 @@ public class Arena {
             }
         }
 
-        blockAccess.leaveReader();
+        // blockAccess.leaveReader();
 
-        blockAccess.enterWriter();
+        // blockAccess.enterWriter();
         memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
-        blockAccess.leaveWriter();
+        // blockAccess.leaveWriter();
 
         return getPage();
     }
@@ -96,16 +95,16 @@ public class Arena {
      */
 
     public void freePage(Long address) throws AllocatorException {
-        blockAccess.enterReader();
+        // blockAccess.enterReader();
 
         for(Block block : memoryBlocks){
             if(block.isAccessible(address)) {
                 try {
                     block.freePage(address);
                 } catch(EmptyBlockException e) {
-                    blockAccess.enterWriter();
+                    // blockAccess.enterWriter();
                     memoryBlocks.remove(block);
-                    blockAccess.leaveWriter();
+                    // blockAccess.leaveWriter();
 
                     backingStore.munmap(block.getStartAddress(), block.getBlockSize());
                 }
@@ -114,7 +113,7 @@ public class Arena {
             }
         }
 
-        blockAccess.leaveReader();
+        // blockAccess.leaveReader();
 
         throw new AllocatorException("Page not present in arena");
     }
@@ -129,17 +128,15 @@ public class Arena {
      */
 
     public boolean isAccessible(Long address) {
-        blockAccess.enterReader();
+        // blockAccess.enterReader();
 
         for(Block block : memoryBlocks){
             if(block.isAccessible(address))
                 return true;
         }
 
-        blockAccess.leaveReader();
+        // blockAccess.leaveReader();
 
         return false;
     }
 }
-
-

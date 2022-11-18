@@ -13,40 +13,24 @@ import java.util.concurrent.*;
 public class RWSemaphore {
     private Semaphore roomEmpty;
 
-    private Semaphore readersIncrement;
+    private Semaphore mutex;
 
-    private Semaphore writersIncrement;
-
-    private Semaphore readersAccess;
-
-    private int amountWriters;
-
-    private int amountReaders;
-    
-    private int waitingWritersLimit;
+    private int readers;
 
     public RWSemaphore(int waitingWritersLimit) {
-        this.waitingWritersLimit = waitingWritersLimit;
-
         roomEmpty = new Semaphore(1);
-        readersIncrement = new Semaphore(1);
-        writersIncrement = new Semaphore(1);
-        readersAccess = new Semaphore(1);
+        mutex = new Semaphore(1);
 
-        amountWriters = 0;
-        amountReaders = 0;
+        readers = 0;
     }
 
     public void enterReader() {
         try {
-            readersAccess.acquire();
-            while(amountWriters > waitingWritersLimit)
-                wait();
-            readersAccess.release();
-
-            readersIncrement.acquire();
-            amountReaders++;
-            readersIncrement.release();
+            mutex.acquire();
+            readers++;
+            if(readers == 1)
+                roomEmpty.acquire();
+            mutex.release();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -54,10 +38,6 @@ public class RWSemaphore {
 
     public void enterWriter() {
         try {
-            writersIncrement.acquire();
-            amountWriters++;
-            writersIncrement.release();
-
             roomEmpty.acquire();
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -66,23 +46,17 @@ public class RWSemaphore {
 
     public void leaveReader() {
         try {
-            readersIncrement.acquire();
-            amountReaders--;
-            readersIncrement.release();
+            mutex.acquire();
+            readers--;
+            if(readers == 0)
+                roomEmpty.release();
+            mutex.release();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
     public void leaveWriter() {
-        try {
-            writersIncrement.acquire();
-            amountWriters--;
-            writersIncrement.release();
-
-            roomEmpty.release();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        roomEmpty.release();
     }
 }

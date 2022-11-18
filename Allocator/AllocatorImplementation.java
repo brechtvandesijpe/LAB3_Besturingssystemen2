@@ -8,6 +8,8 @@ public class AllocatorImplementation implements Allocator {
 
     private HashMap<Integer, Arena> pageSizes;
 
+    private RWSemaphore pageAccess;
+
     /**
      * 
      * @param size
@@ -22,7 +24,7 @@ public class AllocatorImplementation implements Allocator {
         return (int) Math.pow(root, Math.ceil(Math.log(size) / Math.log(root)));
     }
 
-    public static Allocator getInstance() {
+    public static synchronized Allocator getInstance() {
         if (instance == null)
             instance = new AllocatorImplementation();
         return instance;
@@ -35,6 +37,8 @@ public class AllocatorImplementation implements Allocator {
             int pageSize = (int) Math.pow(2, i);
             pageSizes.put(pageSize, new Arena(Block.UNIT_BLOCK_SIZE, pageSize));
         }    
+        
+        pageAccess = new RWSemaphore(5);
     }
 
     /**
@@ -49,14 +53,23 @@ public class AllocatorImplementation implements Allocator {
     public Long allocate(int size) {
         int roundedSize = roundUp(size, 2);
         
-        if(roundedSize <= Block.UNIT_BLOCK_SIZE / 2)
+        if(roundedSize <= Block.UNIT_BLOCK_SIZE / 2) {
+            // pageAccess.enterReader();
             pageSizes.get(roundedSize).getPage();
-        else {
+            // pageAccess.leaveReader();
+        } else {
             roundedSize = roundUp(size, Block.UNIT_BLOCK_SIZE);
+
+            // pageAccess.enterWriter();
             pageSizes.put(roundedSize, new Arena(roundedSize));
+            // pageAccess.leaveWriter();
         }
 
-        return pageSizes.get(roundedSize).getPage();
+        // pageAccess.enterReader();
+        Long output = pageSizes.get(roundedSize).getPage();
+        // pageAccess.leaveReader();
+
+        return output;
     }
 
     /**
@@ -68,12 +81,18 @@ public class AllocatorImplementation implements Allocator {
      */
 
     private Arena getLocation(Long address) {
+        Arena output = null;
+        // pageAccess.enterReader();
+
         for(Arena arena : pageSizes.values()) {
-            if(arena.isAccessible(address))
-                return arena;
+            if(arena.isAccessible(address)) {
+                output = arena;
+                break;
+            }
         }
 
-        return null;
+        // pageAccess.leaveReader();
+        return output;
     }
 
     /**
@@ -132,12 +151,18 @@ public class AllocatorImplementation implements Allocator {
      */
 
     public boolean isAccessible(Long address) {
+        boolean output = false;
+        // pageAccess.enterReader();
+
         for(Integer entry : pageSizes.keySet()) {
-            if(pageSizes.get(entry).isAccessible(address))
-                return true;
+            if(pageSizes.get(entry).isAccessible(address)) {
+                output = true;
+                break;
+            }
         }
 
-        return false;
+        // pageAccess.leaveReader();
+        return output;
     }
 
     /**
@@ -155,7 +180,10 @@ public class AllocatorImplementation implements Allocator {
      */
 
     public boolean isAccessible(Long address, int size) {
+        // pageAccess.enterReader();
         Arena arena = pageSizes.get(size);
+        // pageAccess.leaveReader();
+        
         return arena.isAccessible(address);
     }
 }
