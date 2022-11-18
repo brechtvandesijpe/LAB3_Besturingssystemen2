@@ -10,8 +10,6 @@ class Worker extends Thread {
     private Random random;
 
     private int id;
-
-    private Logger logger;
     
     public Worker() {
         allocator = AllocatorImplementation.getInstance();
