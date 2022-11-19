@@ -68,15 +68,28 @@ public class Block {
      */
 
     public Long getPage() throws AllocatorException {
+        Long output = null;
+
         for(int i = 0; i < blockSize; i += pageSize){
             int pageIndex = i / pageSize;
-            if(!allocatedPages.get(pageIndex)){
-                allocatedPages.set(pageIndex);
-                return startAddress + i;
-            }
+
+            // try {
+            //     mutex.acquire();
+                if(!allocatedPages.get(pageIndex)){
+                    allocatedPages.set(pageIndex);
+                    output = startAddress + i;
+                    break;
+                }
+            //     mutex.release();
+            // } catch (InterruptedException e) {
+            //     logger.log(e.getMessage());
+            // }
         }
-            
-        throw new AllocatorException("No free pages in block");
+
+        if(output != null)
+            return output;
+        else
+            throw new AllocatorException("No free pages in block");
     }
 
     /**
