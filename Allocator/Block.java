@@ -68,21 +68,13 @@ public class Block {
      */
 
     public Long getPage() throws AllocatorException {
-        // try {
-        //     mutex.acquire();
-
-            for(int i = 0; i < blockSize; i += pageSize){
-                int pageIndex = i / pageSize;
-                if(!allocatedPages.get(pageIndex)){
-                    allocatedPages.set(pageIndex);
-                    return startAddress + i;
-                }
+        for(int i = 0; i < blockSize; i += pageSize){
+            int pageIndex = i / pageSize;
+            if(!allocatedPages.get(pageIndex)){
+                allocatedPages.set(pageIndex);
+                return startAddress + i;
             }
-
-        //     mutex.release();
-        // } catch(InterruptedException e) {
-        //     logger.log(e.getMessage());
-        // }
+        }
             
         throw new AllocatorException("No free pages in block");
     }
@@ -103,17 +95,10 @@ public class Block {
         
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
 
-        // try {
-        //     mutex.acquire();
-            allocatedPages.set(pageIndex, false);
-            
-            if(allocatedPages.isEmpty())
-            throw new EmptyBlockException("Block is empty");
-            
-        //     mutex.release();
-        // } catch(InterruptedException e) {
-        //     logger.log(e.getMessage());
-        // }
+        allocatedPages.set(pageIndex, false);
+        
+        if(allocatedPages.isEmpty())
+        throw new EmptyBlockException("Block is empty");
     }
         
     /**
@@ -126,21 +111,13 @@ public class Block {
 
     public boolean hasFreePages(){
         boolean output = false;
-
-        // try {
-        //     mutex.acquire();
             
-            for(int i = 0; i < blockSize / pageSize; i++) {
-                if(!allocatedPages.get(i)) {
-                    output = true;
-                    break;
-                }
+        for(int i = 0; i < blockSize / pageSize; i++) {
+            if(!allocatedPages.get(i)) {
+                output = true;
+                break;
             }
-            
-        //     mutex.release();
-        // } catch(InterruptedException e) {
-        //     logger.log(e.getMessage());
-        // }
+        }
 
         return output;
     }
@@ -160,16 +137,8 @@ public class Block {
         boolean output = false;
         
         if(relativeAddress >= 0) {
-            // try {
-            //     mutex.acquire();
-
-                int pageIndex = (int) Math.floor(relativeAddress / pageSize);
-                output = allocatedPages.get(pageIndex);
-
-            //     mutex.release();
-            // } catch(InterruptedException e) {
-            //     logger.log(e.getMessage());
-            // }
+            int pageIndex = (int) Math.floor(relativeAddress / pageSize);
+            output = allocatedPages.get(pageIndex);
         }
 
         return output;
