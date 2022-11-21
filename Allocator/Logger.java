@@ -8,7 +8,7 @@ public class Logger extends Thread {
     private static DateTimeFormatter dateTimeFormatter;
 
     private Logger() {
-        dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss:SS:nn");
+        dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss:SS");
     }
 
     public static Logger getInstance() {
@@ -16,8 +16,8 @@ public class Logger extends Thread {
         return instance;
     }
 
-    public void log(String s) {
+    public void log(Object s) {
         LocalDateTime now = LocalDateTime.now();
-        System.out.println("[" + dateTimeFormatter.format(now) + "] " + s);
+        System.out.println("[" + dateTimeFormatter.format(now) + "]" + "{" + Thread.currentThread().getId() + "} " + s);
     }
 }

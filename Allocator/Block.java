@@ -1,7 +1,6 @@
 package Allocator;
 
 import java.util.BitSet;
-import java.util.concurrent.*;
 
 public class Block {
     public static final int UNIT_BLOCK_SIZE = 4096;
@@ -11,10 +10,6 @@ public class Block {
     private final int blockSize;
     
     private BitSet allocatedPages;
-
-    private Semaphore mutex;
-
-    private Logger logger;
 
     /**
      * 
@@ -31,8 +26,6 @@ public class Block {
         this.blockSize = blockSize;
         
         allocatedPages = new BitSet();
-        mutex = new Semaphore(1);
-        logger = Logger.getInstance();
     }
 
     /**
@@ -73,17 +66,13 @@ public class Block {
         for(int i = 0; i < blockSize; i += pageSize){
             int pageIndex = i / pageSize;
 
-            // try {
-            //     mutex.acquire();
+            synchronized(allocatedPages) {
                 if(!allocatedPages.get(pageIndex)){
                     allocatedPages.set(pageIndex);
                     output = startAddress + i;
                     break;
                 }
-            //     mutex.release();
-            // } catch (InterruptedException e) {
-            //     logger.log(e.getMessage());
-            // }
+            }
         }
 
         if(output != null)
@@ -108,10 +97,12 @@ public class Block {
         
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
 
-        allocatedPages.set(pageIndex, false);
-        
-        if(allocatedPages.isEmpty())
-        throw new EmptyBlockException("Block is empty");
+        synchronized(allocatedPages) {
+            allocatedPages.set(pageIndex, false);
+            
+            if(allocatedPages.isEmpty())
+                throw new EmptyBlockException("Block is empty");
+        }
     }
         
     /**
@@ -126,9 +117,11 @@ public class Block {
         boolean output = false;
             
         for(int i = 0; i < blockSize / pageSize; i++) {
-            if(!allocatedPages.get(i)) {
-                output = true;
-                break;
+            synchronized(allocatedPages){
+                if(!allocatedPages.get(i)) {
+                    output = true;
+                    break;
+                }
             }
         }
 
@@ -151,7 +144,9 @@ public class Block {
         
         if(relativeAddress >= 0) {
             int pageIndex = (int) Math.floor(relativeAddress / pageSize);
-            output = allocatedPages.get(pageIndex);
+            synchronized(allocatedPages) {
+                output = allocatedPages.get(pageIndex);
+            }
         }
 
         return output;

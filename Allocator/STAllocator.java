@@ -1,15 +1,10 @@
 package Allocator;
 
 import java.util.*;
-import java.util.concurrent.*;
 
-public class AllocatorImplementation implements Allocator {
+public class STAllocator implements Allocator {
     /* Modify this static var to return an instantiated version of your allocator  */
-    private static Allocator instance = null;
-
     private HashMap<Integer, Arena> pageSizes;
-
-    private Semaphore mutex;
 
     private Logger logger;
 
@@ -24,16 +19,17 @@ public class AllocatorImplementation implements Allocator {
      */
 
     public static int roundUp(int size, int root){
-        return (int) Math.pow(root, Math.ceil(Math.log(size) / Math.log(root)));
+        if (root == 0)
+            return size;
+
+        int remainder = size % root;
+        if (remainder == 0)
+            return size;
+
+        return size + root - remainder;
     }
 
-    public static Allocator getInstance() {
-        if (instance == null)
-            instance = new AllocatorImplementation();
-        return instance;
-    }
-
-    private AllocatorImplementation() {
+    public STAllocator() {
         this.pageSizes = new HashMap<>();
 
         for(int i = 3; i < 12; i++) {
@@ -41,8 +37,8 @@ public class AllocatorImplementation implements Allocator {
             pageSizes.put(pageSize, new Arena(Block.UNIT_BLOCK_SIZE, pageSize));
         }
 
-        mutex = new Semaphore(1);
         logger = Logger.getInstance();
+        logger.log(pageSizes);
     }
 
     /**
@@ -55,21 +51,30 @@ public class AllocatorImplementation implements Allocator {
      */
 
     public Long allocate(int size) {
+        logger.log(this +  " : malloc");
+        Long output = 0L;
         int roundedSize = roundUp(size, 2);
         
-        if(roundedSize <= Block.UNIT_BLOCK_SIZE / 2) {
+        try {
             synchronized(pageSizes) {
-                pageSizes.get(roundedSize).getPage();
+                if(roundedSize <= Block.UNIT_BLOCK_SIZE / 2) {
+                    Arena arena = pageSizes.get(roundedSize);
+                    
+                    synchronized(arena) {
+                        arena.getPage();
+                    }
+                } else {
+                    roundedSize = roundUp(size, Block.UNIT_BLOCK_SIZE);
+                    pageSizes.put(roundedSize, new Arena(roundedSize));
+                }
+
+                output = pageSizes.get(roundedSize).getPage();
             }
-        } else {
-            roundedSize = roundUp(size, Block.UNIT_BLOCK_SIZE);
-            synchronized(pageSizes) {
-                pageSizes.put(roundedSize, new Arena(roundedSize));
-            }
-        }
-    
-        synchronized(pageSizes) {
-            return pageSizes.get(roundedSize).getPage();
+
+            return output;
+        } catch(NullPointerException e) {
+            pageSizes.put(roundedSize, new Arena(Block.UNIT_BLOCK_SIZE, roundedSize));
+            return allocate(size);
         }
     }
 
@@ -82,14 +87,18 @@ public class AllocatorImplementation implements Allocator {
      */
 
     private Arena getLocation(Long address) {
+        logger.log(this + " : location");
+        Arena output = null;
+
         synchronized(pageSizes) {
             for(Arena arena : pageSizes.values()) {
                 if(arena.isAccessible(address))
-                    return arena;
+                    output = arena;
+                    break;
             }
-
-            return null;
         }
+
+        return output;
     }
 
     /**
@@ -103,9 +112,17 @@ public class AllocatorImplementation implements Allocator {
      */
 
     public void free(Long address) {
-        Arena arena = getLocation(address);
-        if(arena != null)
-            arena.freePage(address);
+        logger.log(this +  " : free");
+        try {
+            Arena arena = getLocation(address);
+            if(arena != null) {
+                synchronized(arena) {
+                    arena.freePage(address);
+                }
+            }
+        } catch(NullPointerException e) {
+            logger.log("Address: " + address + " nullpointer in free.");
+        }
     }
 
     /**
@@ -128,9 +145,27 @@ public class AllocatorImplementation implements Allocator {
      */
 
     public Long reAllocate(Long oldAddress, int newSize) {
-        Long newAddress = allocate(newSize);
-        free(oldAddress);
-        return newAddress;
+        logger.log(this +  " : realloc");
+        try {
+            Arena arena = getLocation(oldAddress);
+            
+            int oldSize;
+
+            synchronized(arena) {
+                oldSize = arena.getPageSize();
+            }
+
+            if(oldSize >= newSize) {
+                return oldAddress;
+            } else {
+                Long newAddress = allocate(newSize);
+                free(oldAddress);
+                return newAddress;
+            }
+        } catch(NullPointerException e) {
+            logger.log("Address: " + oldAddress + " was not yet allocated.");
+            return allocate(newSize);
+        }
     }
     
     /**
@@ -148,14 +183,15 @@ public class AllocatorImplementation implements Allocator {
      */
 
     public boolean isAccessible(Long address) {
+        logger.log(this + " : accessable");
         synchronized(pageSizes) {
             for(Integer entry : pageSizes.keySet()) {
                 if(pageSizes.get(entry).isAccessible(address))
                     return true;
             }
-
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -173,6 +209,7 @@ public class AllocatorImplementation implements Allocator {
      */
 
     public boolean isAccessible(Long address, int size) {
+        logger.log(this + " : accessable_size");
         synchronized(pageSizes) {
             Arena arena = pageSizes.get(size);
             return arena.isAccessible(address);

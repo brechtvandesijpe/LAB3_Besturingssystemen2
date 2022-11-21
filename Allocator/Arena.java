@@ -47,6 +47,10 @@ public class Arena {
         backingStore = BackingStore.getInstance();
     }
 
+    public int getPageSize() {
+        return pageSize;
+    }
+
     /**
      * 
      * @return
@@ -56,13 +60,17 @@ public class Arena {
      */
 
     public Long getPage() {
-        for(Block block : memoryBlocks){
-            if(block.hasFreePages())
-                return block.getPage();
+        synchronized(memoryBlocks) {
+            for(Block block : memoryBlocks){
+                synchronized(block) {
+                    if(block.hasFreePages()) {
+                        return block.getPage();
+                    }
+                }
+            }
+            memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
+            return getPage();
         }
-
-        memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
-        return getPage();
     }
 
     /**
@@ -75,16 +83,18 @@ public class Arena {
      */
 
     public void freePage(Long address) throws AllocatorException {
-        for(Block block : memoryBlocks){
-            if(block.isAccessible(address)) {
-                try {
-                    block.freePage(address);
-                } catch (EmptyBlockException e) {
-                    memoryBlocks.remove(block);
-                    backingStore.munmap(block.getStartAddress(), block.getBlockSize());
+        synchronized(memoryBlocks) {
+            for(Block block : memoryBlocks){
+                if(block.isAccessible(address)) {
+                    try {
+                        block.freePage(address);
+                    } catch (EmptyBlockException e) {
+                        memoryBlocks.remove(block);
+                        backingStore.munmap(block.getStartAddress(), block.getBlockSize());
+                    }
+                    
+                    return;
                 }
-
-                return;
             }
         }
 
@@ -101,12 +111,16 @@ public class Arena {
      */
 
     public boolean isAccessible(Long address) {
-        for(Block block : memoryBlocks){
-            if(block.isAccessible(address))
-                return true;
+        boolean output = false;
+        synchronized(memoryBlocks) {
+            for(Block block : memoryBlocks){
+                if(block.isAccessible(address)) {
+                    output = true;
+                    break;
+                }
+            }
         }
-
-        return false;
+        return output;
     }
 }
 
