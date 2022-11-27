@@ -5,7 +5,7 @@ import java.util.HashMap;
 import Debugger.Logger;
 
 public class MTAllocator implements Allocator {
-    public static HashMap<Long, Allocator> allocators = new HashMap<>();
+    public static HashMap<Long, STAllocator> allocators = new HashMap<>();
 
     private Logger logger;
 
@@ -13,125 +13,101 @@ public class MTAllocator implements Allocator {
         logger = Logger.getInstance();
     }
 
-    private Allocator getAllocator() {
+    private STAllocator getAllocator() {
         Long threadId = Thread.currentThread().getId();
-        Allocator output = null;
 
         synchronized(allocators) {
-            Allocator allocator = allocators.get(threadId);
-            // logger.log(allocators);
-
+            STAllocator allocator = allocators.get(threadId);
+            
             if(allocator == null) {
                 allocator = new STAllocator();
                 allocators.put(threadId, allocator);
             }
             
-            // logger.log(allocators);
-
-            output = allocator;
+            return allocator;
         }
-
-        return output;
     }
 
     @Override
     public Long allocate(int size) {
-        Allocator allocator = getAllocator();
+        STAllocator allocator = getAllocator();
         return allocator.allocate(size);
     }
 
     @Override
     public void free(Long address) throws AllocatorException {
         try {
-            Allocator allocator = getAllocator();
-            synchronized(allocator) {
-                allocator.free(address);
-            }
+            STAllocator allocator = getAllocator();
+            allocator.free(address);
         } catch(NullPointerException e) {
-            try {
-                synchronized(allocators) {
-                    for(Allocator a : allocators.values()) {
-                        synchronized(a) {
-                            a.free(address);
-                        }
-                    }
+            synchronized(allocators) {
+                for(STAllocator a : allocators.values()) {
+                    try {
+                        a.free(address);
+                    } catch(NullPointerException e2) {}
                 }
-            } catch(NullPointerException e2) {}
+            }
         }
     }
 
     @Override
     public Long reAllocate(Long oldAddress, int newSize) {
         try {
-            Allocator allocator = getAllocator();
-            synchronized(allocator) {
-                allocator.reAllocate(oldAddress, newSize);
-            }
-        } catch(NullPointerException e) {
-            try {
-                synchronized(allocators) {
-                    for(Allocator a : allocators.values()) {
-                        try {
-                            synchronized(a) {
-                                return a.reAllocate(oldAddress, newSize);
-                            }
-                        } catch(AllocatorException e2) {}
-                    }
+            STAllocator allocator = getAllocator();
+            return allocator.reAllocate(oldAddress, newSize);
+        } catch(NullPointerException npe) {
+            synchronized(allocators) {
+                for(STAllocator a : allocators.values()) {
+                    try {
+                        Long output = a.reAllocate(oldAddress, newSize);
+                        if(output != null) 
+                            return output;
+                    } catch(AllocatorException ae) {}
                 }
-            } catch(NullPointerException e2) {}
+            }
         }
-
         return null;
     }
 
     @Override
     public boolean isAccessible(Long address) {
-        boolean output = false;
         try {
-            Allocator allocator = getAllocator();
-            synchronized(allocator) {
-                output = allocator.isAccessible(address);
-            }
+            STAllocator allocator = getAllocator();
+            boolean output = allocator.isAccessible(address);
 
-            if(output == false)
+            if(!output)
                 throw new NullPointerException();
+
+            return true;
         } catch(NullPointerException e) {
-            boolean b = false;
             synchronized(allocators) {
                 for(Allocator a : allocators.values()) {
-                    synchronized(a) {
-                        b = a.isAccessible(address);
-                    }
-                    if(b) output = true;
+                    if(a.isAccessible(address))
+                        return true;
                 }
             }
         }
-        return output;
+        return false;
     }
 
     @Override
     public boolean isAccessible(Long address, int size) {
-        boolean output = false;
         try {
-            Allocator allocator = getAllocator();
-            synchronized(allocator) {
-                synchronized(logger) {
-                    output = allocator.isAccessible(address, size);
-                }
-            }
-            if(output == false)
-                throw new NullPointerException();  
+            STAllocator allocator = getAllocator();
+            boolean output = allocator.isAccessible(address, size);
+
+            if(!output)
+                throw new NullPointerException();
+
+            return true;
         } catch(NullPointerException e) {
-            boolean b = false;
             synchronized(allocators) {
                 for(Allocator a : allocators.values()) {
-                    synchronized(a) {
-                        b = a.isAccessible(address, size);
-                    }
-                    if(b) output = true;
+                    if(a.isAccessible(address, size))
+                        return true;
                 }
             }
         }
-        return output;
+        return false;
     }
 }

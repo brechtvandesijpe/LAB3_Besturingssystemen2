@@ -54,21 +54,17 @@ public class STAllocator implements Allocator {
     public Long allocate(int size) {
         Long output = 0L;
         int roundedSize = roundUp(size, 2);
-
+        
         synchronized(pageSizes) {
             try {
                 if(roundedSize <= Block.UNIT_BLOCK_SIZE / 2) {
-                    Arena arena;
-                    arena = pageSizes.get(roundedSize);
-
-                    synchronized(arena) {
-                        arena.getPage();
-                    }
+                    Arena arena = pageSizes.get(roundedSize);
+                    arena.getPage();
                 } else {
                     roundedSize = roundUp(size, Block.UNIT_BLOCK_SIZE);
                     pageSizes.put(roundedSize, new Arena(roundedSize));
                 }
-
+    
                 output = pageSizes.get(roundedSize).getPage();
                 return output;
             } catch(NullPointerException e) {
@@ -88,20 +84,14 @@ public class STAllocator implements Allocator {
      */
 
     private Arena getLocation(Long address) {
-        Arena output = null;
-
         synchronized(pageSizes) {
             for(Arena arena : pageSizes.values()) {
-                synchronized(arena) {
-                    if(arena.isAccessible(address)) {
-                        output = arena;
-                        break;
-                    }
-                }
+                if(arena.isAccessible(address))
+                    return arena;
             }
         }
         
-        return output;
+        return null;
     }
 
     /**
@@ -116,11 +106,7 @@ public class STAllocator implements Allocator {
 
     public void free(Long address) {
         Arena arena = getLocation(address);
-        if(arena != null) {
-            synchronized(arena) {
-                arena.freePage(address);
-            }
-        }
+        arena.freePage(address);
     }
 
     /**
@@ -144,11 +130,7 @@ public class STAllocator implements Allocator {
 
     public Long reAllocate(Long oldAddress, int newSize) {
         Arena arena = getLocation(oldAddress);
-        int oldSize;
-
-        synchronized(arena) {
-            oldSize = arena.getPageSize();
-        }
+        int oldSize = arena.getPageSize();
 
         if(oldSize >= newSize) {
             return oldAddress;
@@ -174,20 +156,14 @@ public class STAllocator implements Allocator {
      */
 
     public boolean isAccessible(Long address) {
-        boolean output = false;
-
         synchronized(pageSizes) {
             for(Arena arena : pageSizes.values()) {
-                synchronized(arena) {
-                    if(arena.isAccessible(address)) {
-                        output = true;
-                        break;
-                    }
-                }
+                if(arena.isAccessible(address))
+                    return true;
             }
         }
 
-        return output;
+        return false;
     }
 
     /**
@@ -205,18 +181,12 @@ public class STAllocator implements Allocator {
      */
 
     public boolean isAccessible(Long address, int size) {
-        Arena arena = null;
-
         synchronized(pageSizes) {
-            arena = pageSizes.get(size);
+            Arena arena = pageSizes.get(size);
+            if(arena != null)
+                return arena.isAccessible(address);
         }
 
-        if(arena != null) {
-            synchronized(arena) {
-                return arena.isAccessible(address);
-            }
-        } else {
-            return false;
-        }
+        return false;
     }
 }

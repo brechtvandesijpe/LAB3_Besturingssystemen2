@@ -98,13 +98,12 @@ class ArenaWorker extends Thread {
         while(true) {
             Long address = arena.getPage();
             arena.isAccessible(address);
-            // logger.log();
             arena.freePage(address);
         }
     }
 }
 
-class Wrapper {
+class Wrapper /*extends Thread */{
     private Logger logger;
 
     private Allocator allocator;
@@ -115,16 +114,21 @@ class Wrapper {
 
     public Wrapper() {
         logger = Logger.getInstance();
-        allocator = new MTAllocator();
+        allocator = Allocator.instance;
         address = null;
         random = new Random();
     }
 
-    public void exec() {
-        int size = random.nextInt(8, 10000);
-        address = allocator.allocate(size);
-        logger.log(allocator.isAccessible(address));
-        allocator.free(address);
+    public void run() {
+        if(address == null) {
+            int size = random.nextInt(8, 10000);
+            address = allocator.allocate(size);
+            logger.log(allocator.isAccessible(address) + " address was null " + this);
+        } else {
+            logger.log(allocator.isAccessible(address) + " address was not null " + this);
+            allocator.free(address);
+            address = null;
+        }
     }
 }
 
@@ -145,11 +149,8 @@ class AllocatorWorker extends Thread {
         while(true) {
             synchronized(wrappers) {
                 int i = random.nextInt(0, wrappers.size());
-                wrappers.get(i).exec();
+                wrappers.get(i).run();
             }
-            try {
-                Thread.sleep(new Random().nextInt(250, 2500));
-            } catch (InterruptedException e) {}
         }
     }
 }
@@ -167,6 +168,7 @@ public class AllocatorMain {
         for(int i = 0; i < 10; i++) {
             // new BlockWorker(block).start();
             // new ArenaWorker(arena).start();
+            // new Wrapper().start();
             new AllocatorWorker(wrappers).start();
         }
     }
