@@ -27,7 +27,11 @@ public class Logger extends Thread {
             System.out.println("\tNumber of transactions still in-flight: " + (numTransactionsInserted - numTransactionsProcessed) + ".");
             change = numTransactionsInserted - oldNumTransactionsInserted;
             System.out.println("\tBank is receiving " +  ((float)change)/(sleepTime/1000)  + " transactions/s.");
-            System.out.println("\tAverage allocation size: " + Transaction.totalSize.get()/Transaction.numTransactions.get());
+            try {
+                System.out.println("\tAverage allocation size: " + Transaction.totalSize.get()/Transaction.numTransactions.get());
+            } catch (ArithmeticException e) {
+                System.out.println("\tAverage allocation size: infinity");
+            }
             System.out.println("\t% large allocations : " + (100f*Transaction.numTransactionsBiggerThan2Pages.get())/((float)Transaction.numTransactions.get()) + "%");
             oldNumTransactionsProcessed = numTransactionsProcessed;
             oldNumTransactionsInserted = numTransactionsInserted;

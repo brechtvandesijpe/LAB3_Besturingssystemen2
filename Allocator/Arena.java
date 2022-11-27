@@ -1,10 +1,13 @@
 package Allocator;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.concurrent.Semaphore;
+
+import Debugger.Logger;
 
 public class Arena {
     // list of blocks
-    private LinkedList<Block> memoryBlocks;
+    private ArrayList<Block> memoryBlocks;
 
     private BackingStore backingStore;
 
@@ -13,6 +16,12 @@ public class Arena {
 
     // size of the pages in the blocks of the arena
     private int pageSize;
+
+    private Semaphore mutex;
+
+    private Logger logger;
+
+    
 
     /**
      * 
@@ -26,8 +35,10 @@ public class Arena {
         this.blockSize = blockSize;
         this.pageSize = blockSize;
 
-        memoryBlocks = new LinkedList<>();
+        memoryBlocks = new ArrayList<>();
         backingStore = BackingStore.getInstance();
+        mutex = new Semaphore(1);
+        logger = Logger.getInstance();
     }
 
     /**
@@ -43,8 +54,9 @@ public class Arena {
         this.blockSize = blockSize;
         this.pageSize = pageSize;
 
-        memoryBlocks = new LinkedList<>();
+        memoryBlocks = new ArrayList<>();
         backingStore = BackingStore.getInstance();
+        mutex = new Semaphore(1);
     }
 
     public int getPageSize() {
@@ -60,16 +72,35 @@ public class Arena {
      */
 
     public Long getPage() {
-        synchronized(memoryBlocks) {
-            for(Block block : memoryBlocks){
-                synchronized(block) {
-                    if(block.hasFreePages()) {
-                        return block.getPage();
-                    }
+        int i = 0;
+        int size = 0;
+
+        try {
+            // mutex.acquire();
+            size = memoryBlocks.size();
+
+            for(i = 0; i < size; i++) {
+                Block block = memoryBlocks.get(i);
+                
+                if(block.hasFreePages()) {
+                    return block.getPage();
                 }
             }
+
             memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
+            // mutex.release();
+
             return getPage();
+        // } catch(InterruptedException e) {
+        //     e.printStackTrace();
+        //     return null;
+        } catch(IndexOutOfBoundsException e) {
+            synchronized(logger) {
+                logger.log(i + " : " + size);
+                logger.log(e.getMessage());
+            }
+
+            return null;
         }
     }
 
@@ -83,20 +114,33 @@ public class Arena {
      */
 
     public void freePage(Long address) throws AllocatorException {
-        synchronized(memoryBlocks) {
-            for(Block block : memoryBlocks){
+        // try {
+            // mutex.acquire();
+            int size = memoryBlocks.size();
+            // mutex.release();
+
+            for(int i = 0; i < size; i++) {
+                // mutex.acquire();
+                Block block = memoryBlocks.get(i);
+                // mutex.release();
+
                 if(block.isAccessible(address)) {
                     try {
                         block.freePage(address);
                     } catch (EmptyBlockException e) {
+                        // mutex.acquire();
                         memoryBlocks.remove(block);
+                        // mutex.release();
+
                         backingStore.munmap(block.getStartAddress(), block.getBlockSize());
                     }
                     
                     return;
                 }
             }
-        }
+        // } catch (InterruptedException e) {
+        //     logger.log(e.getMessage());
+        // }
 
         throw new AllocatorException("Page not present in arena");
     }
@@ -112,14 +156,27 @@ public class Arena {
 
     public boolean isAccessible(Long address) {
         boolean output = false;
-        synchronized(memoryBlocks) {
-            for(Block block : memoryBlocks){
+        
+        // try {
+            // mutex.acquire();
+            int size = memoryBlocks.size();
+            // mutex.release();
+
+            for(int i = 0; i < size; i++) {
+                // mutex.acquire();
+                Block block = memoryBlocks.get(i);
+                // mutex.release();
+                
                 if(block.isAccessible(address)) {
                     output = true;
                     break;
                 }
             }
-        }
+
+        // } catch (InterruptedException e) {
+        //     logger.log(e.getMessage());
+        // }
+
         return output;
     }
 }

@@ -26,7 +26,7 @@ public class Transaction {
         this.to = to;
         this.amount = amount;
 
-        if (ENABLE_ALLOCATOR) {
+        if(ENABLE_ALLOCATOR) {
             this.size = Math.max(1 + random.nextInt(48), 8);
             while (this.size < 5000 && Math.random() < 0.2)
                 this.size *= 2;
@@ -53,7 +53,7 @@ public class Transaction {
     public void release() {
         if (ENABLE_ALLOCATOR) {
             Allocator.instance.free(address);
-            // ensureAllocated(false);
+            ensureAllocated(false);
         }
     }
 

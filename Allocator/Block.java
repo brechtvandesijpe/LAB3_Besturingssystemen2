@@ -8,7 +8,7 @@ public class Block {
     private final Long startAddress;
     private final int pageSize;
     private final int blockSize;
-    
+
     private BitSet allocatedPages;
 
     /**
@@ -60,18 +60,16 @@ public class Block {
      *
      */
 
-    public Long getPage() throws AllocatorException {
+    public synchronized Long getPage() throws AllocatorException {
         Long output = null;
 
         for(int i = 0; i < blockSize; i += pageSize){
             int pageIndex = i / pageSize;
 
-            synchronized(allocatedPages) {
-                if(!allocatedPages.get(pageIndex)){
-                    allocatedPages.set(pageIndex);
-                    output = startAddress + i;
-                    break;
-                }
+            if(!allocatedPages.get(pageIndex)) {
+                allocatedPages.set(pageIndex);
+                output = startAddress + i;
+                break;
             }
         }
 
@@ -89,20 +87,17 @@ public class Block {
      * 
      */
 
-    public void freePage(Long address) throws AllocatorException, EmptyBlockException {
+    public synchronized void freePage(Long address) throws AllocatorException, EmptyBlockException {
         Long relativeAddress = address - startAddress;
 
         if(relativeAddress < 0)
             throw new AllocatorException("Page not present in block");
         
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
-
-        synchronized(allocatedPages) {
-            allocatedPages.set(pageIndex, false);
-            
-            if(allocatedPages.isEmpty())
-                throw new EmptyBlockException("Block is empty");
-        }
+        allocatedPages.set(pageIndex, false);
+        
+        if(allocatedPages.isEmpty())
+            throw new EmptyBlockException("Block is empty");
     }
         
     /**
@@ -113,15 +108,13 @@ public class Block {
      * 
      */
 
-    public boolean hasFreePages(){
+    public synchronized boolean hasFreePages(){
         boolean output = false;
             
         for(int i = 0; i < blockSize / pageSize; i++) {
-            synchronized(allocatedPages){
-                if(!allocatedPages.get(i)) {
-                    output = true;
-                    break;
-                }
+            if(!allocatedPages.get(i)) {
+                output = true;
+                break;
             }
         }
 
@@ -137,18 +130,14 @@ public class Block {
      * 
      */
 
-    public boolean isAccessible(Long address) {
+    public synchronized boolean isAccessible(Long address) {
         Long relativeAddress = address - startAddress;
 
-        boolean output = false;
-        
         if(relativeAddress >= 0) {
             int pageIndex = (int) Math.floor(relativeAddress / pageSize);
-            synchronized(allocatedPages) {
-                output = allocatedPages.get(pageIndex);
-            }
+            return allocatedPages.get(pageIndex);
         }
 
-        return output;
+        return false;
     }
 }

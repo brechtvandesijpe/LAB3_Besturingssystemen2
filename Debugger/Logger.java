@@ -1,4 +1,4 @@
-package Allocator;
+package Debugger;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -12,12 +12,16 @@ public class Logger extends Thread {
     }
 
     public static Logger getInstance() {
-        if(instance == null) instance = new Logger();
+        if(instance == null) {
+            instance = new Logger();
+            instance.start();
+        }
         return instance;
     }
 
-    public void log(Object s) {
+    public synchronized void log(Object s) {
         LocalDateTime now = LocalDateTime.now();
-        System.out.println("[" + dateTimeFormatter.format(now) + "]" + "{" + Thread.currentThread().getId() + "} " + s);
+        System.out.println("[" + dateTimeFormatter.format(now) + "]" + "{" + Thread.currentThread().getId() + "} "
+                            + StackTracer.getInfo() + " : " + s);
     }
 }
