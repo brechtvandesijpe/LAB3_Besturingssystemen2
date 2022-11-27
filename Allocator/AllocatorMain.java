@@ -123,10 +123,10 @@ class Wrapper /*extends Thread */{
         if(address == null) {
             int size = random.nextInt(8, 10000);
             address = allocator.allocate(size);
-            logger.log(allocator.isAccessible(address) + " address was null " + this);
         } else {
-            logger.log(allocator.isAccessible(address) + " address was not null " + this);
+            logger.log(allocator.isAccessible(address) + "  b"/*" address was not null " + this*/);
             allocator.free(address);
+            // logger.log(allocator.isAccessible(address) + " a"/*" address was not null " + this*/);
             address = null;
         }
     }
@@ -155,21 +155,37 @@ class AllocatorWorker extends Thread {
     }
 }
 
+class Test {
+    public Test() {}
+
+    public void test() {
+        Logger logger = Logger.getInstance();
+        logger.log(this);
+
+        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        for(StackTraceElement e : stackTraceElements) {
+            logger.log(e);
+        }
+    }
+}
+
 public class AllocatorMain {
     public static void main(String[] args) {
-        Block block = new Block((BackingStore.getInstance().mmap(4096)), 8, 4096);
-        Arena arena = new Arena(8);
+        // Block block = new Block((BackingStore.getInstance().mmap(4096)), 8, 4096);
+        // Arena arena = new Arena(8);
 
-        LinkedList<Wrapper> wrappers = new LinkedList<Wrapper>();
-        for(int i = 0; i< 10; i++) {
-            wrappers.add(new Wrapper());
-        }
+        // LinkedList<Wrapper> wrappers = new LinkedList<Wrapper>();
+        // for(int i = 0; i < 2; i++) {
+        //     wrappers.add(new Wrapper());
+        // }
 
-        for(int i = 0; i < 10; i++) {
-            // new BlockWorker(block).start();
-            // new ArenaWorker(arena).start();
-            // new Wrapper().start();
-            new AllocatorWorker(wrappers).start();
-        }
+        // for(int i = 0; i < 10; i++) {
+        //     // new BlockWorker(block).start();
+        //     // new ArenaWorker(arena).start();
+        //     // new Wrapper().start();
+        //     new AllocatorWorker(wrappers).start();
+        // }
+        Test t = new Test();
+        t.test();
     }
 }
