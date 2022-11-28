@@ -1,13 +1,26 @@
 package Allocator;
+
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
+import java.util.LinkedList;
 
 public class STAllocator implements Allocator {
     private NavigableMap<Integer, Arena> alloccedBlocks = new TreeMap<>();
 
+    private LinkedList<Arena> getArenas() {
+        LinkedList<Arena> output = new LinkedList<>();
+
+        synchronized(alloccedBlocks) {
+            for(Arena a : alloccedBlocks.values())
+                if(a != alloccedBlocks) output.add(a);
+        }
+
+        return output;
+    }
+
     private Arena getArena(Long address) {
-        for(Arena arena : alloccedBlocks.values()) {
+        for(Arena arena : getArenas()) {
             boolean b = arena.isAccessible(address);
             if(b) return arena;
         }
@@ -16,25 +29,32 @@ public class STAllocator implements Allocator {
     }
 
     @Override
-    public synchronized Long allocate(int size) {
+    public Long allocate(int size) {
         if(size <= 0)
             throw new AllocatorException("Size can't be negative or zero");
         
-        Arena arena = alloccedBlocks.get(size);
+        Arena arena;
+        
+        synchronized(alloccedBlocks) {
+            arena = alloccedBlocks.get(size);
+        }
         
         if(arena == null) {
             if(size > 4096)
                 arena = new Arena(Block.UNIT_BLOCK_SIZE);
             else
                 arena = new Arena(Block.UNIT_BLOCK_SIZE, size);
-            alloccedBlocks.put(size, arena);
+
+            synchronized(alloccedBlocks) {
+                alloccedBlocks.put(size, arena);
+            }
         }
 
         return arena.getPage();
     }
 
     @Override
-    public synchronized void free(Long address) throws AllocatorException {
+    public void free(Long address) throws AllocatorException {
         Arena arena = getArena(address);
 
         if(arena == null)
@@ -53,13 +73,18 @@ public class STAllocator implements Allocator {
     }
 
     @Override
-    public synchronized boolean isAccessible(Long address) {
+    public boolean isAccessible(Long address) {
         return getArena(address) != null;
     }
 
     @Override
-    public synchronized boolean isAccessible(Long address, int size) {
-        Arena arena = alloccedBlocks.get(size);
+    public boolean isAccessible(Long address, int size) {
+        Arena arena;
+        
+        synchronized(alloccedBlocks) {
+            arena = alloccedBlocks.get(size);
+        }
+
         if(arena == null) return false;
         else return arena.isAccessible(address);
     }

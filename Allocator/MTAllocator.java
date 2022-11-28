@@ -1,6 +1,7 @@
 package Allocator;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 
 import Debugger.Logger;
 
@@ -16,17 +17,32 @@ public class MTAllocator implements Allocator {
 
     private STAllocator getAllocator() {
         Long threadId = Thread.currentThread().getId();
+        STAllocator allocator;
 
         synchronized(allocators) {
-            STAllocator allocator = allocators.get(threadId);
+            allocator = allocators.get(threadId);
+        }
             
-            if(allocator == null) {
-                allocator = new STAllocator();
+        if(allocator == null) {
+            allocator = new STAllocator();
+            synchronized(allocators) {
                 allocators.put(threadId, allocator);
             }
-            
-            return allocator;
         }
+            
+        return allocator;
+    }
+
+    private LinkedList<STAllocator> getAllocators(STAllocator excludedAllocator) {
+        LinkedList<STAllocator> output = new LinkedList<>();
+
+        synchronized(allocators) {
+            for(STAllocator a : allocators.values()) {
+                if(a != excludedAllocator) output.add(a);
+            }
+        }
+
+        return output;
     }
 
     @Override
@@ -37,47 +53,55 @@ public class MTAllocator implements Allocator {
 
     @Override
     public void free(Long address) throws AllocatorException {
+        STAllocator allocator = null;
+
         try {
-            STAllocator allocator = getAllocator();
+            allocator = getAllocator();
             allocator.free(address);
         } catch(AllocatorException ae) {
-            // logger.log(address + " not found, iterating throug...");
-            // synchronized(allocators) {
-            //     for(STAllocator a : allocators.values()) {
-            //         try {
-            //             a.free(address);
-            //         } catch(AllocatorException ae2) {}
-            //     }
-            // }
+            for(STAllocator a : getAllocators(allocator)) {
+                boolean b = false;
+
+                try {
+                    a.free(address);
+                } catch(AllocatorException ae2) {
+                    b = true;
+                }
+                
+                if(!b)
+                    break;
+            }
         }
     }
 
     @Override
     public Long reAllocate(Long oldAddress, int newSize) {
+        Long output = null;
+        STAllocator allocator = null;
+
         try {
-            STAllocator allocator = getAllocator();
+            allocator = getAllocator();
             return allocator.reAllocate(oldAddress, newSize);
         } catch(AllocatorException ae) {
-            // synchronized(allocators) {
-            //     for(STAllocator a : allocators.values()) {
-            //         try {
-            //             Long output = a.reAllocate(oldAddress, newSize);
-            //             if(output != null) 
-            //                 return output;
-            //         } catch(AllocatorException ae2) {}
-            //     }
-            // }
+            for(STAllocator a : getAllocators(allocator)) {
+                try {
+                    output = a.reAllocate(oldAddress, newSize);
+                    if(output != null)
+                        return output;
+                } catch(AllocatorException ae2) {}   
+            }
         }
-        
-        return null;
+
+        return output;
     }
 
     @Override
     public boolean isAccessible(Long address) {
-        try {
-            boolean output;
-            STAllocator allocator = getAllocator();
+        boolean output = false;
+        STAllocator allocator = null;
 
+        try {
+            allocator = getAllocator();
             output = allocator.isAccessible(address);
 
             if(!output)
@@ -85,22 +109,25 @@ public class MTAllocator implements Allocator {
             
             return true;
         } catch(AllocatorException ae) {
-            // synchronized(allocators) {
-            //     for(Allocator a : allocators.values()) {
-            //         if(a.isAccessible(address))
-            //             return true;
-            //     }
-            // }
+            for(STAllocator a : getAllocators(allocator)) {
+                try {
+                    output = a.isAccessible(address);
+                    if(output)
+                        return output;
+                } catch(AllocatorException ae2) {}   
+            }
         }
 
-        return false;
+        return output;
     }
 
     @Override
     public boolean isAccessible(Long address, int size) {
+        boolean output = false;
+        STAllocator allocator = null;
+
         try {
-            STAllocator allocator = getAllocator();
-            boolean output;
+            allocator = getAllocator();
             
             output = allocator.isAccessible(address, size);
 
@@ -109,16 +136,15 @@ public class MTAllocator implements Allocator {
 
             return true;
         } catch(AllocatorException ae) {
-            // synchronized(allocators) {
-            //     for(Allocator a : allocators.values()) {
-            //         synchronized(a) {
-            //             if(a.isAccessible(address, size))
-            //                 return true;
-            //         }
-            //     }
-            // }
+            for(STAllocator a : getAllocators(allocator)) {
+                try {
+                    output = a.isAccessible(address, size);
+                    if(output)
+                        return output;
+                } catch(AllocatorException ae2) {}   
+            }
         }
 
-        return false;
+        return output;
     }
 }
