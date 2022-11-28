@@ -1,4 +1,5 @@
 package Allocator;
+<<<<<<< Updated upstream:Allocator/AllocatorImplementation.java
 
 import java.util.*;
 
@@ -74,18 +75,50 @@ public class AllocatorImplementation implements Allocator {
         }
 
         return null;
+=======
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
+
+public class STAllocator implements Allocator {
+    private NavigableMap<Integer, Arena> alloccedBlocks = new TreeMap<>();
+
+    private Arena getArena(Long address) {
+        for(Arena arena : alloccedBlocks.values()) {
+            boolean b = arena.isAccessible(address);
+            if(b) return arena;
+        }
+
+        return null;
     }
 
-    /**
-     * 
-     * @param address
-     * @return
-     * 
-     * Releases the region of memory pointed to by `address`.
-     * This memory can be reused to serve future `allocate` requests.
-     * 
-     */
+    @Override
+    public synchronized Long allocate(int size) {
+        if(size <= 0)
+            throw new AllocatorException("Size can't be negative or zero");
+        
+        Arena arena = alloccedBlocks.get(size);
+        
+        if(arena == null) {
+            if(size > 4096)
+                arena = new Arena(Block.UNIT_BLOCK_SIZE);
+            else
+                arena = new Arena(Block.UNIT_BLOCK_SIZE, size);
+            alloccedBlocks.put(size, arena);
+        }
 
+        return arena.getPage();
+>>>>>>> Stashed changes:Allocator/STAllocator.java
+    }
+
+    @Override
+    public synchronized void free(Long address) throws AllocatorException {
+        Arena arena = getArena(address);
+
+        if(arena == null)
+            throw new AllocatorException("Address is not allocated");
+
+<<<<<<< Updated upstream:Allocator/AllocatorImplementation.java
     public void free(Long address) {
         Arena arena = getLocation(address);
         if(arena != null)
@@ -136,10 +169,26 @@ public class AllocatorImplementation implements Allocator {
             if(pageSizes.get(entry).isAccessible(address))
                 return true;
         }
-
-        return false;
+=======
+        arena.freePage(address);
     }
 
+    @Override
+    public Long reAllocate(Long oldAddress, int newSize) throws AllocatorException {
+        if(newSize <= 0)
+            throw new AllocatorException("Size can't be negative or zero");
+
+        free(oldAddress);
+        return allocate(newSize);
+    }
+>>>>>>> Stashed changes:Allocator/STAllocator.java
+
+    @Override
+    public synchronized boolean isAccessible(Long address) {
+        return getArena(address) != null;
+    }
+
+<<<<<<< Updated upstream:Allocator/AllocatorImplementation.java
     /**
      * 
      * @param address
@@ -157,5 +206,12 @@ public class AllocatorImplementation implements Allocator {
     public boolean isAccessible(Long address, int size) {
         Arena arena = pageSizes.get(size);
         return arena.isAccessible(address);
+=======
+    @Override
+    public synchronized boolean isAccessible(Long address, int size) {
+        Arena arena = alloccedBlocks.get(size);
+        if(arena == null) return false;
+        else return arena.isAccessible(address);
+>>>>>>> Stashed changes:Allocator/STAllocator.java
     }
 }
