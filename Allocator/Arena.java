@@ -1,10 +1,11 @@
 package Allocator;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
+import Debugger.Logger;
 
 public class Arena {
     // list of blocks
-    private LinkedList<Block> memoryBlocks;
+    private ArrayList<Block> memoryBlocks;
 
     private BackingStore backingStore;
 
@@ -13,6 +14,10 @@ public class Arena {
 
     // size of the pages in the blocks of the arena
     private int pageSize;
+
+    private Logger logger;
+
+    
 
     /**
      * 
@@ -26,8 +31,9 @@ public class Arena {
         this.blockSize = blockSize;
         this.pageSize = blockSize;
 
-        memoryBlocks = new LinkedList<>();
+        memoryBlocks = new ArrayList<>();
         backingStore = BackingStore.getInstance();
+        logger = Logger.getInstance();
     }
 
     /**
@@ -43,8 +49,12 @@ public class Arena {
         this.blockSize = blockSize;
         this.pageSize = pageSize;
 
-        memoryBlocks = new LinkedList<>();
+        memoryBlocks = new ArrayList<>();
         backingStore = BackingStore.getInstance();
+    }
+
+    public int getPageSize() {
+        return pageSize;
     }
 
     /**
@@ -56,13 +66,20 @@ public class Arena {
      */
 
     public Long getPage() {
-        for(Block block : memoryBlocks){
-            if(block.hasFreePages())
-                return block.getPage();
+        try {
+            synchronized(memoryBlocks) {
+                for(Block block : memoryBlocks) {
+                    if(block.hasFreePages())
+                        return block.getPage();
+                }
+                
+                memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
+                return getPage();
+            }
+        } catch(IndexOutOfBoundsException e) {
+            logger.log(e.getMessage());
+            return null;
         }
-
-        memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
-        return getPage();
     }
 
     /**
@@ -75,18 +92,21 @@ public class Arena {
      */
 
     public void freePage(Long address) throws AllocatorException {
-        for(Block block : memoryBlocks){
-            if(block.isAccessible(address)) {
-                try {
-                    block.freePage(address);
-                } catch (EmptyBlockException e) {
-                    memoryBlocks.remove(block);
-                    backingStore.munmap(block.getStartAddress(), block.getBlockSize());
+        synchronized(memoryBlocks) {
+            for(Block block : memoryBlocks) {
+                if(block.isAccessible(address)) {
+                    try {
+                        block.freePage(address);
+                    } catch (EmptyBlockException e) {
+                        memoryBlocks.remove(block);
+                        backingStore.munmap(block.getStartAddress(), block.getBlockSize());
+                    }
+                    
+                    return;
                 }
-
-                return;
             }
         }
+        
 
         throw new AllocatorException("Page not present in arena");
     }
@@ -101,13 +121,13 @@ public class Arena {
      */
 
     public boolean isAccessible(Long address) {
-        for(Block block : memoryBlocks){
-            if(block.isAccessible(address))
-                return true;
+        synchronized(memoryBlocks) {
+            for(Block block : memoryBlocks) {
+                if(block.isAccessible(address))
+                    return true;
+            }
         }
 
         return false;
     }
 }
-
-

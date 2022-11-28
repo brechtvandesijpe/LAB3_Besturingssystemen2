@@ -8,7 +8,7 @@ public class Block {
     private final Long startAddress;
     private final int pageSize;
     private final int blockSize;
-    
+
     private BitSet allocatedPages;
 
     /**
@@ -60,12 +60,15 @@ public class Block {
      *
      */
 
-    public Long getPage() throws AllocatorException {
+    public synchronized Long getPage() throws AllocatorException {
         for(int i = 0; i < blockSize; i += pageSize){
             int pageIndex = i / pageSize;
-            if(!allocatedPages.get(pageIndex)){
-                allocatedPages.set(pageIndex);
-                return startAddress + i;
+
+            synchronized(allocatedPages) {
+                if(!allocatedPages.get(pageIndex)) {
+                    allocatedPages.set(pageIndex);
+                    return startAddress + i;
+                }
             }
         }
 
@@ -87,12 +90,13 @@ public class Block {
             throw new AllocatorException("Page not present in block");
         
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
-        allocatedPages.set(pageIndex, false);
-
-        if(allocatedPages.isEmpty())
-            throw new EmptyBlockException("Block is empty");
+        synchronized(allocatedPages) {
+            allocatedPages.set(pageIndex, false);
+            if(allocatedPages.isEmpty())
+                throw new EmptyBlockException("Block is empty");
+        }
     }
-
+        
     /**
      * @param address
      * @return
@@ -101,10 +105,12 @@ public class Block {
      * 
      */
 
-    public boolean hasFreePages(){
+    public boolean hasFreePages() {
         for(int i = 0; i < blockSize / pageSize; i++) {
-            if(!allocatedPages.get(i))
-                return true;
+            synchronized(allocatedPages) {
+                if(!allocatedPages.get(i))
+                    return true;
+            }
         }
 
         return false;
@@ -122,10 +128,13 @@ public class Block {
     public boolean isAccessible(Long address) {
         Long relativeAddress = address - startAddress;
 
-        if(relativeAddress < 0)
-            return false;
-        
-        int pageIndex = (int) Math.floor(relativeAddress / pageSize);
-        return allocatedPages.get(pageIndex);
+        if(relativeAddress >= 0) {
+            int pageIndex = (int) Math.floor(relativeAddress / pageSize);
+            synchronized(allocatedPages) {
+                return allocatedPages.get(pageIndex);
+            }
+        }
+
+        return false;
     }
 }
