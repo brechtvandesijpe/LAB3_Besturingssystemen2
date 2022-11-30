@@ -5,19 +5,17 @@ import java.util.BitSet;
 public class Block {
     public static final int UNIT_BLOCK_SIZE = 4096;
 
-    private final Long startAddress;
-    private final int pageSize;
-    private final int blockSize;
+    private final Long startAddress;        // start address of the block
+    private final int pageSize;             // size of the pages in the block in bytes
+    private final int blockSize;            // size of the block in bytes
     
     private BitSet allocatedPages;
 
     /**
-     * 
      * @param startAddress
      * @param pageSize
      * 
-     * COnstructor for a block.
-     * 
+     * Constructor for a block.
      */
 
     public Block(Long startAddress, int pageSize, int blockSize) {
@@ -29,11 +27,9 @@ public class Block {
     }
 
     /**
-     * 
      * @return
      * 
      * Get start address of the block.
-     * 
      */
 
     public Long getStartAddress() {
@@ -41,11 +37,9 @@ public class Block {
     }
 
     /**
-     * 
      * @return
      * 
      * Get the size of the block.
-     * 
      */
 
     public int getBlockSize() {
@@ -57,15 +51,19 @@ public class Block {
      * @throws AllocatorException
      * 
      * Method to get a free page from the block.
-     *
      */
 
     public Long getPage() throws AllocatorException {
         for(int i = 0; i < blockSize; i += pageSize){
             int pageIndex = i / pageSize;
             
+            // Check if the page is free
             if(!allocatedPages.get(pageIndex)){
+
+                // Set the page as allocated
                 allocatedPages.set(pageIndex);
+
+                // Return the address of the page
                 return startAddress + i;
             }
         }
@@ -78,13 +76,14 @@ public class Block {
      * @throws AllocatorException
      * 
      * Method to free a page from the block.
-     * 
      */
 
     public void freePage(Long address) throws AllocatorException, EmptyBlockException {
+        // Get the virtual address in the page
         Long relativeAddress = address - startAddress;
 
-        if(relativeAddress < 0)
+        // Check if the address is within the block
+        if(relativeAddress < 0 || relativeAddress >= blockSize)
             throw new AllocatorException("Page not present in block");
         
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
@@ -99,7 +98,6 @@ public class Block {
      * @return
      * 
      * Method to check if the block has free pages.
-     * 
      */
 
     public boolean hasFreePages(){
@@ -112,12 +110,10 @@ public class Block {
     }
 
     /**
-     * 
      * @param address
      * @return
      * 
      * Method to check if the block is accessible on a specific address.
-     * 
      */
 
     public boolean isAccessible(Long address) {

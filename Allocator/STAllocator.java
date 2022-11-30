@@ -60,7 +60,7 @@ public class STAllocator implements Allocator {
     /**
      * @param address
      * @exception AllocatorException
-     * @ReinoutA
+     * @return
      * 
      * Frees the arena where the address is present
      */

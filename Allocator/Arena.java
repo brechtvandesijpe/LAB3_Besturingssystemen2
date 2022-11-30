@@ -15,11 +15,9 @@ public class Arena {
     private int pageSize;
 
     /**
-     * 
      * @param blockSize
      * 
      * Constructor for an arena with an equal block and page size.
-     * 
      */
 
     public Arena(int blockSize){
@@ -31,12 +29,10 @@ public class Arena {
     }
 
     /**
-     * 
      * @param blockSize
      * @param pageSize
      * 
      * Constructor for an arena with a specific block and page size.
-     * 
      */
 
     public Arena(int blockSize, int pageSize){
@@ -68,11 +64,9 @@ public class Arena {
     }
 
     /**
-     * 
      * @return
      * 
      * Method to get a free page from the arena.
-     * 
      */
 
     public Long getPage() {
@@ -86,12 +80,10 @@ public class Arena {
     }
 
     /**
-     * 
      * @param address
      * @throws AllocatorException
      * 
      * Method to free a page from the arena.
-     * 
      */
 
     public void freePage(Long address) throws AllocatorException {
@@ -112,12 +104,10 @@ public class Arena {
     }
 
     /**
-     * 
      * @param address
      * @return
      * 
      * Method to check if a page is present in the arena.
-     * 
      */
 
     public boolean isAccessible(Long address) {
