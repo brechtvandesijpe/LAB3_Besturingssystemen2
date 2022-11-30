@@ -91,7 +91,7 @@ public class Arena {
             if(block.isAccessible(address)) {
                 try {
                     block.free(address);
-                } catch (EmptyBlockException e) {
+                } catch (BlockException e) {
                     memoryBlocks.remove(block);
                     backingStore.munmap(block.getStartAddress(), block.getBlockSize());
                 }

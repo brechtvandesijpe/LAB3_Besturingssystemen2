@@ -6,7 +6,7 @@ import java.util.*;
 import Debugger.*;
 
 public class Block {
-    public static final int UNIT_BLOCK_SIZE = 64;
+    public static final int UNIT_BLOCK_SIZE = 16;
 
     private final Long startAddress;        // start address of the block
     private final int pageSize;             // size of the pages in the block in bytes
@@ -23,23 +23,19 @@ public class Block {
      * Constructor for a block.
      */
 
-    public void print(String message) {
-        StringBuilder sb = new StringBuilder();
+    public Block(Long startAddress, int pageSize, int blockSize) throws BlockException {
+        if(pageSize > blockSize)
+            throw new BlockException("Page size can't be greater than block size");
 
-        for(int i = 0; i < allocatedPages.size(); i++) {
-            sb.append(allocatedPages.get(i) ? "1" : "0");
-        }
-
-        logger.log(message + " : " + sb.toString());
-    }
-
-    public Block(Long startAddress, int pageSize, int blockSize) {
         this.startAddress = startAddress;
         this.pageSize = pageSize;
         this.blockSize = blockSize;
+
         
         allocatedPages = new BitSet();
         logger = Logger.getInstance();
+
+        logger.log(this.pageSize + " " + this.blockSize);
     }
 
     /**
@@ -69,7 +65,7 @@ public class Block {
      * Method to get a free page from the block.
      */
 
-    public Long allocate() throws AllocatorException {
+    public Long allocate() throws BlockException {
         for(int i = 0; i < blockSize; i += pageSize){
             int pageIndex = i / pageSize;
             
@@ -79,12 +75,11 @@ public class Block {
                 allocatedPages.set(pageIndex);
 
                 // Return the address of the page
-                print("alloc");
                 return startAddress + i;
             }
         }
 
-        throw new AllocatorException("No free pages in block");
+        throw new BlockException("No free pages in block");
 
     }
 
@@ -95,21 +90,24 @@ public class Block {
      * Method to free a page from the block.
      */
 
-    public void free(Long address) throws AllocatorException, EmptyBlockException {
+    public void free(Long address) throws BlockException {
+        
+        // Check if the address is within the block
+        if(isAccessible(address, 1))
+            return;
+        
         // Get the virtual address in the page
         Long relativeAddress = address - startAddress;
 
-        // Check if the address is within the block
-        if(relativeAddress < 0 || relativeAddress >= blockSize)
-            throw new AllocatorException("Page not present in block");
-        
+        // Get the page index of the relative address
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
+
+        // Free the page
         allocatedPages.set(pageIndex, false);
         
-        if(allocatedPages.isEmpty())
-            throw new EmptyBlockException("Block is empty");
-
-        print("free");
+        // If the block is empty, throw an exception
+        // if(allocatedPages.isEmpty())
+        //     throw new BlockException("Block is empty");
     }
 
     /**
@@ -120,7 +118,7 @@ public class Block {
      */
 
     public boolean hasFreePages(){
-        for(int i = 0; i < blockSize / pageSize; i++) {
+        for(int i = 0; i < (blockSize / pageSize); i++) {
             if(!allocatedPages.get(i))
                 return true;
         }
@@ -139,15 +137,38 @@ public class Block {
         return isAccessible(address, 1);
     }
 
-    public boolean isAccessible(Long address, int size) {
+    /**
+     * @param address
+     * @param range
+     * @return
+     * 
+     * Method to check if the block is accessible on a specific address and a given range after that address.
+     */
+
+    public boolean isAccessible(Long address, int range) {
         Long relativeAddress = address - startAddress;
+
+        if(relativeAddress < 0 || relativeAddress >= blockSize)
+            return false;
+
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
 
-        for(relativeAddress = relativeAddress; relativeAddress < size + size; relativeAddress++) {
-            if((int) Math.floor(relativeAddress / pageSize) != pageIndex)
+        for(address = relativeAddress; relativeAddress < (address + range); address++) {
+            int index = (int) Math.floor((address) / pageSize);
+            if(index != pageIndex)
                 return false;
         }
         
         return allocatedPages.get(pageIndex);
+    }
+    
+    public void print(String message) {
+        StringBuilder sb = new StringBuilder();
+
+        for(int i = 0; i < (blockSize / pageSize); i++) {
+            sb.append(allocatedPages.get(i) ? "1" : "0");
+        }
+        
+        logger.log(sb.toString() + " : " + message);
     }
 }
