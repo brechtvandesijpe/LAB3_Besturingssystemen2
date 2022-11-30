@@ -140,12 +140,14 @@ public class Block {
     }
 
     public boolean isAccessible(Long address, int size) {
-        for(Long i = address - startAddress; i < address - startAddress + size; i++) {
-            if(i < 0 || i >= blockSize)
+        Long relativeAddress = address - startAddress;
+        int pageIndex = (int) Math.floor(relativeAddress / pageSize);
+
+        for(relativeAddress = relativeAddress; relativeAddress < size + size; relativeAddress++) {
+            if((int) Math.floor(relativeAddress / pageSize) != pageIndex)
                 return false;
         }
         
-        int pageIndex = (int) Math.floor(relativeAddress / pageSize);
         return allocatedPages.get(pageIndex);
     }
 }
