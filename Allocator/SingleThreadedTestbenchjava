@@ -35,7 +35,7 @@ public class Main {
             address = allocator.reAllocate(address, size / 2);
             ensureAllocated(true);
 
-            address = allocator.reAllocate(address, size * 4);
+            address = allocator.reAllocate(address, size * 2);
             ensureAllocated(true);
 
             // Free the allocated memory
