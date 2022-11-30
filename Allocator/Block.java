@@ -1,15 +1,20 @@
 package Allocator;
 
 import java.util.BitSet;
+import java.util.*;
+
+import Debugger.*;
 
 public class Block {
-    public static final int UNIT_BLOCK_SIZE = 4096;
+    public static final int UNIT_BLOCK_SIZE = 64;
 
     private final Long startAddress;        // start address of the block
     private final int pageSize;             // size of the pages in the block in bytes
     private final int blockSize;            // size of the block in bytes
     
     private BitSet allocatedPages;
+
+    private Logger logger;
 
     /**
      * @param startAddress
@@ -18,12 +23,23 @@ public class Block {
      * Constructor for a block.
      */
 
+    public void print(String message) {
+        StringBuilder sb = new StringBuilder();
+
+        for(int i = 0; i < allocatedPages.size(); i++) {
+            sb.append(allocatedPages.get(i) ? "1" : "0");
+        }
+
+        logger.log(message + " : " + sb.toString());
+    }
+
     public Block(Long startAddress, int pageSize, int blockSize) {
         this.startAddress = startAddress;
         this.pageSize = pageSize;
         this.blockSize = blockSize;
         
         allocatedPages = new BitSet();
+        logger = Logger.getInstance();
     }
 
     /**
@@ -53,22 +69,23 @@ public class Block {
      * Method to get a free page from the block.
      */
 
-    public Long getPage() throws AllocatorException {
+    public Long allocate() throws AllocatorException {
         for(int i = 0; i < blockSize; i += pageSize){
             int pageIndex = i / pageSize;
             
             // Check if the page is free
             if(!allocatedPages.get(pageIndex)){
-
                 // Set the page as allocated
                 allocatedPages.set(pageIndex);
 
                 // Return the address of the page
+                print("alloc");
                 return startAddress + i;
             }
         }
 
         throw new AllocatorException("No free pages in block");
+
     }
 
     /**
@@ -78,7 +95,7 @@ public class Block {
      * Method to free a page from the block.
      */
 
-    public void freePage(Long address) throws AllocatorException, EmptyBlockException {
+    public void free(Long address) throws AllocatorException, EmptyBlockException {
         // Get the virtual address in the page
         Long relativeAddress = address - startAddress;
 
@@ -91,6 +108,8 @@ public class Block {
         
         if(allocatedPages.isEmpty())
             throw new EmptyBlockException("Block is empty");
+
+        print("free");
     }
 
     /**

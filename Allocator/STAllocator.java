@@ -3,12 +3,18 @@ package Allocator;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.LinkedList;
+import java.lang.Math;
+
 import Debugger.Logger;
 
 public class STAllocator implements Allocator {
     private NavigableMap<Integer, Arena> arenas;
 
     private Logger logger;
+
+    public static int round(int root, int multiple) {
+        return (Math.round(root / multiple) * multiple);
+    }
 
     public STAllocator() {
         arenas = new TreeMap<>();
@@ -40,21 +46,27 @@ public class STAllocator implements Allocator {
      */
 
     public Long allocate(int size) throws AllocatorException {
+        // If the size is illegal throw an exception
         if(size <= 0)
             throw new AllocatorException("Size can't be negative or zero");
         
+        int roundedSize = (int) (Math.pow(2, Math.ceil(Math.log(size) / Math.log(2))));
+
+        // Get the arena with the given size
         Arena arena = arenas.get(size);
         
+        // If the arena doesn't exist, create it    
         if(arena == null) {
-            if(size > 4096)
-                arena = new Arena(Block.UNIT_BLOCK_SIZE);
+            if(size > Block.UNIT_BLOCK_SIZE)
+                arena = new Arena(roundedSize);
             else
-                arena = new Arena(Block.UNIT_BLOCK_SIZE, size);
+                arena = new Arena(Block.UNIT_BLOCK_SIZE, roundedSize);
 
             arenas.put(size, arena);
         }
 
-        return arena.getPage();
+        // Allocate a new block from the arena
+        return arena.allocate();
     }
 
     /**
@@ -71,7 +83,7 @@ public class STAllocator implements Allocator {
         if(arena == null)
             throw new AllocatorException("Address is not allocated");
 
-        arena.freePage(address);
+        arena.free(address);
     }
 
     /**

@@ -66,31 +66,31 @@ public class Arena {
     /**
      * @return
      * 
-     * Method to get a free page from the arena.
+     * Method to allocate a page in the arena
      */
 
-    public Long getPage() {
+    public Long allocate() {
         for(Block block : memoryBlocks){
             if(block.hasFreePages())
-                return block.getPage();
+                return block.allocate();
         }
 
         memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
-        return getPage();
+        return allocate();
     }
 
     /**
      * @param address
      * @throws AllocatorException
      * 
-     * Method to free a page from the arena.
+     * Method to free an address from the arena.
      */
 
-    public void freePage(Long address) throws AllocatorException {
+    public void free(Long address) throws AllocatorException {
         for(Block block : memoryBlocks){
             if(block.isAccessible(address)) {
                 try {
-                    block.freePage(address);
+                    block.free(address);
                 } catch (EmptyBlockException e) {
                     memoryBlocks.remove(block);
                     backingStore.munmap(block.getStartAddress(), block.getBlockSize());
