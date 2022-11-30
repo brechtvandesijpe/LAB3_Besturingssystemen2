@@ -53,7 +53,7 @@ public class Transaction {
     public void release() {
         if (ENABLE_ALLOCATOR) {
             Allocator.instance.free(address);
-            // ensureAllocated(false);
+            ensureAllocated(false);
         }
     }
 
