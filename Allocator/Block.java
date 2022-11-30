@@ -63,12 +63,8 @@ public class Block {
     public Long getPage() throws AllocatorException {
         for(int i = 0; i < blockSize; i += pageSize){
             int pageIndex = i / pageSize;
-<<<<<<< Updated upstream
+            
             if(!allocatedPages.get(pageIndex)){
-=======
-
-            if(!allocatedPages.get(pageIndex)) {
->>>>>>> Stashed changes
                 allocatedPages.set(pageIndex);
                 return startAddress + i;
             }
@@ -93,10 +89,7 @@ public class Block {
         
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
         allocatedPages.set(pageIndex, false);
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
+        
         if(allocatedPages.isEmpty())
             throw new EmptyBlockException("Block is empty");
     }
@@ -130,19 +123,10 @@ public class Block {
     public boolean isAccessible(Long address) {
         Long relativeAddress = address - startAddress;
 
-<<<<<<< Updated upstream
         if(relativeAddress < 0)
             return false;
         
         int pageIndex = (int) Math.floor(relativeAddress / pageSize);
         return allocatedPages.get(pageIndex);
-=======
-        if(relativeAddress >= 0) {
-            int pageIndex = (int) Math.floor(relativeAddress / pageSize);
-            return allocatedPages.get(pageIndex);
-        }
-
-        return false;
->>>>>>> Stashed changes
     }
 }

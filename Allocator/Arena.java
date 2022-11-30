@@ -28,19 +28,6 @@ public class Arena {
 
         memoryBlocks = new LinkedList<>();
         backingStore = BackingStore.getInstance();
-<<<<<<< Updated upstream
-=======
-        logger = Logger.getInstance();
-    }
-
-    private LinkedList<Block> getBlocks() {
-        LinkedList<Block> output = new LinkedList<>();
-
-        for(Block b : memoryBlocks)
-            output.add(b);
-
-        return output;
->>>>>>> Stashed changes
     }
 
     /**
@@ -61,6 +48,26 @@ public class Arena {
     }
 
     /**
+     * @return
+     * 
+     * Get the nidividual size of the memory blocks in the arena.
+     */
+
+    public int getBlockSize() {
+        return blockSize;
+    }
+
+    /**
+     * @return
+     * 
+     * Get the size of the pages in the memory blocks in the arena.
+     */
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    /**
      * 
      * @return
      * 
@@ -72,17 +79,6 @@ public class Arena {
         for(Block block : memoryBlocks){
             if(block.hasFreePages())
                 return block.getPage();
-<<<<<<< Updated upstream
-=======
-            }
-            
-            memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
-            
-            return getPage();
-        } catch(IndexOutOfBoundsException e) {
-            logger.log(e.getMessage());
-            return null;
->>>>>>> Stashed changes
         }
 
         memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
