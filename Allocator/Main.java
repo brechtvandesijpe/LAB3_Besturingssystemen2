@@ -24,10 +24,10 @@ public class Main {
         // Create a new allocator
         allocator = new STAllocator();
         logger = Logger.getInstance();
-        Random random = new Random();
+        // Random random = new Random();
 
-        while(true) {
-            size = random.nextInt(8, 10000);
+        for(int i = 8; i <= 10000; i++) {
+            size = i;
             // Allocate a new size
             address = allocator.allocate(size);
             ensureAllocated(true);

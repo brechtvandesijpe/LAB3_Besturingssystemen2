@@ -84,12 +84,29 @@ public class STAllocator implements Allocator {
      */
 
     public Long reAllocate(Long oldAddress, int newSize) throws AllocatorException {
+        // Check if the new size is valid
         if(newSize <= 0)
             throw new AllocatorException("Size can't be negative or zero");
 
+        // Get the arena where the address is present
+        Arena arena = getArena(oldAddress);
+
+        // If the arena is null, the address is not allocated and thus cannot be reallocated
+        if(arena == null)
+            throw new AllocatorException("Address is not allocated");
+
+        // Get the old size of the allocation
+        int oldSize = arena.getPageSize();
+
+        // If the old size is greater or the same as the new size, return the old address
+        if(oldSize >= newSize)
+            return oldAddress;
+
+        // Free the old address
         free(oldAddress);
-        Long output = allocate(newSize);
-        return output;
+
+        // Allocate a new address with the new size and return it
+        return allocate(newSize);
     }
 
     /**
@@ -100,8 +117,8 @@ public class STAllocator implements Allocator {
      */
 
     public boolean isAccessible(Long address) {
-        boolean output = getArena(address) != null;
-        return output;
+        // If the arena is null, the address is not allocated
+        return getArena(address) != null;
     }
 
     /**
@@ -113,7 +130,10 @@ public class STAllocator implements Allocator {
      */
 
     public boolean isAccessible(Long address, int size) {
+        // Get the arena with the given size
         Arena arena = arenas.get(size);
+
+        // If the arena is null, the address is defenetly not allocated, else check if the address is accessible within the arena
         if(arena == null)
             return false;
         else
@@ -128,6 +148,7 @@ public class STAllocator implements Allocator {
      */
 
     public int getSize(Long address) {
+        // Check all the arenas
         for(Arena arena : arenas.values()) {
             if(arena.isAccessible(address))
                 return arena.getPageSize();
