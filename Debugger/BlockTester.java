@@ -16,7 +16,7 @@ public class BlockTester {
     
     public BlockTester(int pageSize) throws BlockException {
         this.pageSize = pageSize;
-        block = new Block(0L, pageSize, Block.UNIT_BLOCK_SIZE);
+        block = new Block(0L, pageSize);
         amountOfPages = Block.UNIT_BLOCK_SIZE / pageSize;
         address = null;
         logger = Logger.getInstance();
@@ -44,16 +44,13 @@ public class BlockTester {
 
         // Range Onder->In checken
         testRange(address - (amountOfPages / 2), amountOfPages, false);
-        // testRange(address - 4, 8, false);
-
+        
         // Range In->In checken
         testRange(address, amountOfPages, true);
-        // testRange(address, 8, false);
-
+        
         // Range In->Boven checken7
         testRange(address + (amountOfPages / 2), amountOfPages, false);
-        // testRange(address + 4, 8, false);
-
+        
         block.print("Before frees");
         block.free(address2);
         block.print("After free");

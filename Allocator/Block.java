@@ -23,19 +23,16 @@ public class Block {
      * Constructor for a block.
      */
 
-    public Block(Long startAddress, int pageSize, int blockSize) throws BlockException {
-        if(pageSize > blockSize)
+    public Block(Long startAddress, int pageSize) throws BlockException {
+        if(pageSize > UNIT_BLOCK_SIZE)
             throw new BlockException("Page size can't be greater than block size");
-
+        
         this.startAddress = startAddress;
+        this.blockSize = UNIT_BLOCK_SIZE;
         this.pageSize = pageSize;
-        this.blockSize = blockSize;
-
         
         allocatedPages = new BitSet();
         logger = Logger.getInstance();
-
-        logger.log(this.pageSize + " " + this.blockSize);
     }
 
     /**
@@ -146,18 +143,15 @@ public class Block {
      */
 
     public boolean isAccessible(Long address, int range) {
-        logger.log(address + " " + range);
         address -= startAddress;
 
         if(address < 0 || address >= blockSize)
             return false;
 
         int pageIndex = (int) (address / pageSize);
-        logger.log("-");
-
+        
         for(Long relativeAddress = address; relativeAddress < (address + range); relativeAddress++) {
-            logger.log(relativeAddress + " " + (address / pageSize) + " " + pageIndex);
-            if(address / pageSize != pageIndex)
+            if(relativeAddress / pageSize != pageIndex)
                 return false;
         }
         
