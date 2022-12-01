@@ -23,13 +23,14 @@ public class Block {
      * Constructor for a block.
      */
 
-    public Block(Long startAddress, int pageSize) throws BlockException {
-        if(pageSize > UNIT_BLOCK_SIZE)
+    public Block(Long startAddress, int pageSize, int blockSize) throws BlockException {
+        if(pageSize > blockSize)
             throw new BlockException("Page size can't be greater than block size");
-        
+
         this.startAddress = startAddress;
-        this.blockSize = UNIT_BLOCK_SIZE;
         this.pageSize = pageSize;
+        this.blockSize = blockSize;
+
         
         allocatedPages = new BitSet();
         logger = Logger.getInstance();
@@ -158,13 +159,14 @@ public class Block {
         return allocatedPages.get(pageIndex);
     }
     
-    public void print(String message) {
+    public void print(Object message) {
         StringBuilder sb = new StringBuilder();
 
         for(int i = 0; i < (blockSize / pageSize); i++) {
             sb.append(allocatedPages.get(i) ? "1" : "0");
         }
         
-        logger.log(sb.toString() + " : " + message);
+        sb.append(" | " + message);
+        logger.log(sb.toString());
     }
 }

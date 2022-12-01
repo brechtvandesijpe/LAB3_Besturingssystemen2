@@ -1,10 +1,10 @@
 package Debugger;
 
-import Allocator.Block;
-import Allocator.BlockException;
+import Allocator.Arena;
+import Allocator.AllocatorException;
 
-public class BlockTester {
-    private Block block;
+public class ArenaTester {
+    private Arena arena;
 
     private int blockSize;
 
@@ -18,40 +18,40 @@ public class BlockTester {
 
     private boolean debug;
     
-    public BlockTester(int blockSize, int pageSize, boolean debug) throws BlockException {
+    public ArenaTester(int blockSize, int pageSize, boolean debug) {
         this.blockSize = blockSize;
         this.pageSize = pageSize;
 
-        block = new Block(0L, pageSize, blockSize);
+        arena = new Arena(blockSize, pageSize);
         
         amountOfPages = blockSize / pageSize;
         address = null;
-        
+
         logger = Logger.getInstance();
 
         this.debug = debug;
     }
 
     public void testRange(Long startAddress, int range, boolean condition) throws TesterException {
-        if(block.isAccessible(startAddress, range) != condition) {
+        if(arena.isAccessible(startAddress, range) != condition) {
             logger.log("Expected " + condition + " for address " + startAddress + (range <= 1 ? "" : " and range " + range));
             throw new TesterException("TEST FAILED");
         }
     }
 
-    public void test() throws BlockException, TesterException {
-        if(debug) block.print("Before alloc");
-        address = block.allocate();
-        if(debug) block.print("After alloc");
+    public void test() throws TesterException {
+        if(debug) arena.print("Before alloc");
+        address = arena.allocate();
+        if(debug) arena.print("After alloc");
 
         // Enkele adressen checken
         for(Long i = address; i < (Long) (address + pageSize); i++) {
             testRange(i, 0, true);
         }
 
-        if(debug) block.print("Before alloc");
-        Long address2 = block.allocate();
-        if(debug) block.print("After alloc");
+        if(debug) arena.print("Before alloc");
+        Long address2 = arena.allocate();
+        if(debug) arena.print("After alloc");
 
         // Range Onder->In checken
         testRange(address - (pageSize / 2), pageSize, false);
@@ -62,12 +62,11 @@ public class BlockTester {
         // Range In->Boven checken7
         testRange(address + (pageSize / 2), pageSize, false);
         
-        if(debug) block.print("Before frees");
-        block.free(address2);
-        if(debug) block.print("After free");
-        block.free(address);
-        if(debug) block.print("After frees");
-
+        if(debug) arena.print("Before frees");
+        arena.free(address2);
+        if(debug) arena.print("After free");
+        arena.free(address);
+        if(debug) arena.print("After frees");
         // Enkele adressen checken
         for(Long i = address; i < (Long) (address + pageSize); i++) {
             testRange(i, 4, false);
@@ -84,5 +83,4 @@ public class BlockTester {
 
         throw new TesterException("            TESTS PASSED");
     }
-
 }

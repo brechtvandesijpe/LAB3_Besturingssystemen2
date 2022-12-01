@@ -1,6 +1,7 @@
 package Allocator;
 
 import java.util.LinkedList;
+import Debugger.*;
 
 public class Arena {
     // list of blocks
@@ -14,6 +15,8 @@ public class Arena {
     // size of the pages in the blocks of the arena
     private int pageSize;
 
+    private Logger logger;
+
     /**
      * @param blockSize
      * 
@@ -26,6 +29,7 @@ public class Arena {
 
         memoryBlocks = new LinkedList<>();
         backingStore = BackingStore.getInstance();
+        logger = Logger.getInstance();
     }
 
     /**
@@ -41,6 +45,7 @@ public class Arena {
 
         memoryBlocks = new LinkedList<>();
         backingStore = BackingStore.getInstance();
+        logger = Logger.getInstance();
     }
 
     /**
@@ -70,13 +75,18 @@ public class Arena {
      */
 
     public Long allocate() {
-        for(Block block : memoryBlocks){
-            if(block.hasFreePages())
-                return block.allocate();
-        }
+        try {
+            for(Block block : memoryBlocks){
+                if(block.hasFreePages())
+                    return block.allocate();
+            }
 
-        memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
-        return allocate();
+            memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
+            return allocate();
+        } catch (BlockException e) {
+            logger.log(e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -107,7 +117,7 @@ public class Arena {
      * @param address
      * @return
      * 
-     * Method to check if a page is present in the arena.
+     * Method to check if the arena is accessible on a specific address.
      */
 
     public boolean isAccessible(Long address) {
@@ -117,6 +127,30 @@ public class Arena {
         }
 
         return false;
+    }
+
+    /**
+     * @param address
+     * @return
+     * 
+     * Method to check if the arena is accessible on a specific address and a given range after that address.
+     */
+
+    public boolean isAccessible(Long address, int range) {
+        for(Block block : memoryBlocks){
+            if(block.isAccessible(address, range))
+                return true;
+        }
+
+        return false;
+    }
+
+    public void print(Object message) {
+        logger.log("         " + message);
+
+        for(int i = 0; i < memoryBlocks.size(); i++) {
+            memoryBlocks.get(i).print("Block " + i);
+        }
     }
 }
 
