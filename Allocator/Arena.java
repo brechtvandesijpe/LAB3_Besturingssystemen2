@@ -96,7 +96,7 @@ public class Arena {
      * Method to free an address from the arena.
      */
 
-    public void free(Long address) throws AllocatorException {
+    public void free(Long address) throws AllocatorException, ArenaException {
         for(Block block : memoryBlocks){
             if(block.isAccessible(address)) {
                 try {
@@ -104,6 +104,9 @@ public class Arena {
                 } catch (BlockException e) {
                     memoryBlocks.remove(block);
                     backingStore.munmap(block.getStartAddress(), block.getBlockSize());
+                    
+                    if(memoryBlocks.isEmpty())
+                        throw new ArenaException("No blocks in the arena");
                 }
 
                 return;
@@ -145,12 +148,15 @@ public class Arena {
         return false;
     }
 
-    public void print(Object message) {
-        logger.log("         " + message);
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
 
         for(int i = 0; i < memoryBlocks.size(); i++) {
-            memoryBlocks.get(i).print("Block " + i);
+            sb.append(memoryBlocks.get(i).toString());
         }
+
+        return sb.toString();
     }
 }
 

@@ -6,7 +6,7 @@ import java.util.*;
 import Debugger.*;
 
 public class Block {
-    public static final int UNIT_BLOCK_SIZE = 16;
+    public static final int UNIT_BLOCK_SIZE = 4096;
 
     private final Long startAddress;        // start address of the block
     private final int pageSize;             // size of the pages in the block in bytes
@@ -89,7 +89,6 @@ public class Block {
      */
 
     public void free(Long address) throws BlockException {
-        
         // Check if the address is within the block
         if(!isAccessible(address, 1))
             return;
@@ -104,8 +103,8 @@ public class Block {
         allocatedPages.set(pageIndex, false);
         
         // If the block is empty, throw an exception
-        // if(allocatedPages.isEmpty())
-        //     throw new BlockException("Block is empty");
+        if(allocatedPages.isEmpty())
+            throw new BlockException("Block is empty");
     }
 
     /**
@@ -146,27 +145,30 @@ public class Block {
     public boolean isAccessible(Long address, int range) {
         address -= startAddress;
 
-        if(address < 0 || address >= blockSize)
+        if(range == 0)
+            throw new IllegalArgumentException("Range is zero");
+
+        if(address < 0 || address > blockSize || (address + range) < 0 || (address + range) > blockSize)
             return false;
 
-        int pageIndex = (int) (address / pageSize);
+        int pageIndexAddress = (int) Math.floor(address / pageSize);
+        int pageIndexRange = (int) Math.floor((address + range - 1) / pageSize);
+
+        if(pageIndexAddress != pageIndexRange)
+            return false;
         
-        for(Long relativeAddress = address; relativeAddress < (address + range); relativeAddress++) {
-            if(relativeAddress / pageSize != pageIndex)
-                return false;
-        }
-        
-        return allocatedPages.get(pageIndex);
+        return allocatedPages.get(pageIndexAddress);
     }
     
-    public void print(Object message) {
+    @Override
+    public String toString() {
         StringBuilder sb = new StringBuilder();
+        sb.append("[");
 
-        for(int i = 0; i < (blockSize / pageSize); i++) {
+        for(int i = 0; i < (blockSize / pageSize); i++)
             sb.append(allocatedPages.get(i) ? "1" : "0");
-        }
-        
-        sb.append(" | " + message);
-        logger.log(sb.toString());
+
+        sb.append("]");
+        return sb.toString();
     }
 }

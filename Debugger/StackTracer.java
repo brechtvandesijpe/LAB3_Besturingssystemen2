@@ -23,4 +23,11 @@ public class StackTracer {
         depth = STANDARD_DEPTH;
         return output;
     }
+
+    public static String getInfo(int d) {
+        depth += d + 1;
+        String output = getCurrentClass() + "." + getCurrentMethod() + " at line " + getCurrentLineNumber();
+        depth = STANDARD_DEPTH;
+        return output;
+    }
 }

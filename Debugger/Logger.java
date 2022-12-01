@@ -24,4 +24,10 @@ public class Logger extends Thread {
         System.out.println("[" + dateTimeFormatter.format(now) + "]" + "{" + Thread.currentThread().getId() + "} "
                             + StackTracer.getInfo() + " : " + s);
     }
+    
+    public synchronized void log(Object s, int depth) {
+        LocalDateTime now = LocalDateTime.now();
+        System.out.println("[" + dateTimeFormatter.format(now) + "]" + "{" + Thread.currentThread().getId() + "} "
+                            + StackTracer.getInfo(depth) + " : " + s);
+    }
 }

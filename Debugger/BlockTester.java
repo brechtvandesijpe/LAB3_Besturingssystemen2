@@ -4,27 +4,23 @@ import Allocator.Block;
 import Allocator.BlockException;
 
 public class BlockTester {
-    private Block block;
-
     private int blockSize;
-
+    
     private int pageSize;
-
+    
     private int amountOfPages;
 
-    private Long address;
-
-    private Logger logger;
-
-    private boolean debug;
+    private Block block;
     
-    public BlockTester(int blockSize, int pageSize, boolean debug) throws BlockException {
-        this.blockSize = blockSize;
-        this.pageSize = pageSize;
+    private Long address;
+    
+    private Logger logger;
+    
+    private boolean debug;
 
-        block = new Block(0L, pageSize, blockSize);
-        
-        amountOfPages = blockSize / pageSize;
+    private String[] states;
+    
+    public BlockTester(boolean debug) throws BlockException {
         address = null;
         
         logger = Logger.getInstance();
@@ -34,55 +30,169 @@ public class BlockTester {
 
     public void testRange(Long startAddress, int range, boolean condition) throws TesterException {
         if(block.isAccessible(startAddress, range) != condition) {
-            logger.log("Expected " + condition + " for address " + startAddress + (range <= 1 ? "" : " and range " + range));
-            throw new TesterException("TEST FAILED");
+            printStates();
+            logger.log("Expected " + condition + " for address " + startAddress + (range <= 1 ? "" : " and range " + range), 1);
+            throw new TesterException("                                                         TEST FAILED");
+        }
+    }
+
+    private void printStates() {
+        for(String s : states) {
+            if(s != null) logger.log(s,1);
         }
     }
 
     public void test() throws BlockException, TesterException {
-        if(debug) block.print("Before alloc");
-        address = block.allocate();
-        if(debug) block.print("After alloc");
+        int[][] sizes = {{Block.UNIT_BLOCK_SIZE, 1},
+                         {Block.UNIT_BLOCK_SIZE, 2},
+                         {Block.UNIT_BLOCK_SIZE, 4},
+                         {Block.UNIT_BLOCK_SIZE, 8},
+                         {Block.UNIT_BLOCK_SIZE, 16},
+                         {Block.UNIT_BLOCK_SIZE, 32},
+                         {Block.UNIT_BLOCK_SIZE, 64},
+                         {Block.UNIT_BLOCK_SIZE, 128},
+                         {Block.UNIT_BLOCK_SIZE, 256},
+                         {Block.UNIT_BLOCK_SIZE, 512},
+                         {Block.UNIT_BLOCK_SIZE, 1024},
+                         {Block.UNIT_BLOCK_SIZE, 2048}};
 
-        // Enkele adressen checken
-        for(Long i = address; i < (Long) (address + pageSize); i++) {
-            testRange(i, 0, true);
+        for(int[] size : sizes) {
+            states = new String[4];
+
+            blockSize = size[0];
+            pageSize = size[1];
+
+            block = new Block(0L, pageSize, blockSize);
+            
+            amountOfPages = blockSize / pageSize;
+            address = block.allocate();
+            states[0] = block.toString();
+
+
+            Long address2 = block.allocate();
+            states[1] = block.toString();
+
+            // Enkele adressen checken
+            for(int offset = 0; offset < pageSize; offset++) {
+                testRange(address + offset, 1, true);
+                testRange(address2 + offset, 1, true);
+            }
+
+            // Range Onder->In checken
+            testRange(address - 1, 2, false);
+            testRange(address2 - 1, 2, false);
+            
+            // Range In->In checken
+            testRange(address, pageSize, true);
+            testRange(address2, pageSize, true);
+
+            // Range In->Boven checken
+            testRange(address, pageSize + 1, false);
+            testRange(address2, pageSize + 1, false);
+
+            try {
+                block.free(address2);
+                states[2] = block.toString();
+            } catch (BlockException e) {}
+
+            
+            // Enkele adressen checken
+            for(int offset = 0; offset < pageSize; offset++) {
+                testRange(address + offset, 1, true);
+                testRange(address2 + offset, 1, false);
+            }
+
+            // Range Onder->In checken
+            testRange(address - 1, 2, false);
+            testRange(address2 - 1, 2, false);
+            
+            // Range In->In checken
+            testRange(address, pageSize, true);
+            testRange(address2, pageSize, false);
+
+            // Range In->Boven checken
+            testRange(address, pageSize + 1, false);
+            testRange(address2, pageSize + 1, false);
+            
+            try {
+                block.free(address);
+                states[3] = block.toString();
+            } catch (BlockException e) {}
+
+            // Enkele adressen checken
+            for(int offset = 0; offset < pageSize; offset++) {
+                testRange(address + offset, 1, false);
+                testRange(address2 + offset, 1, false);
+            }
+
+            // Range Onder->In checken
+            testRange(address - 1, 2, false);
+            testRange(address2 - 1, 2, false);
+            
+            // Range In->In checken
+            testRange(address, pageSize, false);
+            testRange(address2, pageSize, false);
+
+            // Range In->Boven checken
+            testRange(address, pageSize + 1, false);
+            testRange(address2, pageSize + 1, false);
+            
+            System.out.println("PASSED: Pagesize " + pageSize);
         }
 
-        if(debug) block.print("Before alloc");
-        Long address2 = block.allocate();
-        if(debug) block.print("After alloc");
+        int[][] sizes2 = {{Block.UNIT_BLOCK_SIZE, Block.UNIT_BLOCK_SIZE},
+                          {2 * Block.UNIT_BLOCK_SIZE, 2 * Block.UNIT_BLOCK_SIZE},
+                          {3 * Block.UNIT_BLOCK_SIZE, 3 * Block.UNIT_BLOCK_SIZE},
+                          {4 * Block.UNIT_BLOCK_SIZE, 4 * Block.UNIT_BLOCK_SIZE},
+                          {5 * Block.UNIT_BLOCK_SIZE, 5 * Block.UNIT_BLOCK_SIZE}};
 
-        // Range Onder->In checken
-        testRange(address - (pageSize / 2), pageSize, false);
-        
-        // Range In->In checken
-        testRange(address, pageSize, true);
-        
-        // Range In->Boven checken7
-        testRange(address + (pageSize / 2), pageSize, false);
-        
-        if(debug) block.print("Before frees");
-        block.free(address2);
-        if(debug) block.print("After free");
-        block.free(address);
-        if(debug) block.print("After frees");
+        for(int[] size : sizes2) {
+            states = new String[2];
 
-        // Enkele adressen checken
-        for(Long i = address; i < (Long) (address + pageSize); i++) {
-            testRange(i, 4, false);
+            blockSize = size[0];
+            pageSize = size[1];
+
+            block = new Block(0L, pageSize, blockSize);
+            
+            amountOfPages = blockSize / pageSize;
+            address = block.allocate();
+            states[0] = block.toString();
+
+            // Enkele adressen checken
+            for(int offset = 0; offset < pageSize; offset++)
+                testRange(address + offset, 1, true);
+
+            // Range Onder->In checken
+            testRange(address - 1, 2, false);
+            
+            // Range In->In checken
+            testRange(address, pageSize, true);
+
+            // Range In->Boven checken
+            testRange(address, pageSize + 1, false);
+            
+            try {
+                block.free(address);
+                states[1] = block.toString();
+            } catch (BlockException e) {}
+
+            // Enkele adressen checken
+            for(int offset = 0; offset < pageSize; offset++) {
+                testRange(address + offset, 1, false);
+            }
+
+            // Range Onder->In checken
+            testRange(address - 1, 2, false);
+            
+            // Range In->In checken
+            testRange(address, pageSize, false);
+
+            // Range In->Boven checken
+            testRange(address, pageSize + 1, false);
+
+            System.out.println("PASSED: Pagesize " + pageSize);
         }
-
-        // Range Onder->In checken
-        testRange(address - (pageSize / 2), pageSize, false);
-
-        // Range In->In checken
-        testRange(address, pageSize, false);
-
-        // Range In->Boven checken7
-        testRange(address + (pageSize / 2), pageSize, false);
-
-        throw new TesterException("            TESTS PASSED");
+        
+        throw new TesterException("                                                   ALL BLOCK TESTS PASSED");
     }
-
 }
