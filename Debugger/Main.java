@@ -1,13 +1,9 @@
-package Allocator;
+package Debugger;
 
-
-import java.lang.Math;
-import Debugger.*;
+import Allocator.BlockException;
 
 public class Main {
     public static void main(String[] args) throws BlockException {
-        Logger logger = Logger.getInstance();
-
         System.out.println("============================================================================================================================");
         System.out.println("                                                        BLOCK TESTER");
         
@@ -38,6 +34,5 @@ public class Main {
             System.out.println(e.getMessage());
             System.out.println("============================================================================================================================");
         }
-
     }
 }
