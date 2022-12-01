@@ -93,14 +93,14 @@ public class Block {
     public void free(Long address) throws BlockException {
         
         // Check if the address is within the block
-        if(isAccessible(address, 1))
+        if(!isAccessible(address, 1))
             return;
         
         // Get the virtual address in the page
-        Long relativeAddress = address - startAddress;
+        address -= startAddress;
 
         // Get the page index of the relative address
-        int pageIndex = (int) Math.floor(relativeAddress / pageSize);
+        int pageIndex = (int) Math.floor(address / pageSize);
 
         // Free the page
         allocatedPages.set(pageIndex, false);
@@ -146,16 +146,18 @@ public class Block {
      */
 
     public boolean isAccessible(Long address, int range) {
-        Long relativeAddress = address - startAddress;
+        logger.log(address + " " + range);
+        address -= startAddress;
 
-        if(relativeAddress < 0 || relativeAddress >= blockSize)
+        if(address < 0 || address >= blockSize)
             return false;
 
-        int pageIndex = (int) Math.floor(relativeAddress / pageSize);
+        int pageIndex = (int) (address / pageSize);
+        logger.log("-");
 
-        for(address = relativeAddress; relativeAddress < (address + range); address++) {
-            int index = (int) Math.floor((address) / pageSize);
-            if(index != pageIndex)
+        for(Long relativeAddress = address; relativeAddress < (address + range); relativeAddress++) {
+            logger.log(relativeAddress + " " + (address / pageSize) + " " + pageIndex);
+            if(address / pageSize != pageIndex)
                 return false;
         }
         
