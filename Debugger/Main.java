@@ -33,7 +33,16 @@ public class Main {
         } catch(TesterException e) {
             System.out.println(e.getMessage());
             System.out.println("============================================================================================================================");
-            return;
+        }
+
+        System.out.println("                                                      ALLOCATOR TESTER");
+
+        try {
+            AllocatorTester allocatorTester = new AllocatorTester(false);
+            allocatorTester.test();
+        } catch(TesterException e) {
+            System.out.println(e.getMessage());
+            System.out.println("============================================================================================================================");
         }
     }
 }

@@ -13,7 +13,7 @@ public class STAllocator implements Allocator {
 
     public STAllocator() {
         arenas = new TreeMap<>();
-        this.logger = Logger.getInstance();;
+        this.logger = Logger.getInstance();
     }
 
     private int baseTwo(int number) {
@@ -59,7 +59,8 @@ public class STAllocator implements Allocator {
         }
 
         // Allocate a new block from the arena
-        return arena.allocate();
+        Long address = arena.allocate();
+        return address;
     }
 
     /**
@@ -152,8 +153,9 @@ public class STAllocator implements Allocator {
 
     public boolean isAccessible(Long address, int size) {
         for(Arena arena : arenas.values()) {
-            if(arena.isAccessible(address, size))
+            if(arena.isAccessible(address, size)) {
                 return true;
+            }
         }
         
         return false;

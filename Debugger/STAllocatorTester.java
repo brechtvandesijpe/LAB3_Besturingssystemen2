@@ -71,6 +71,7 @@ public class STAllocatorTester {
             // Range In->Boven checken
             testRange(address, size + 1, false);
 
+            System.out.println("PASSED: Pagesize " + originalSize + " MALLOC");
 
             /*
              * ===========================================================================
@@ -96,6 +97,8 @@ public class STAllocatorTester {
             // Range In->Boven checken
             testRange(address, size + 1, false);
 
+            System.out.println("PASSED: Pagesize " + originalSize + " REALLOC+");
+
             /*
              * ===========================================================================
              * ============================REALLOCATION TEST 2============================
@@ -117,6 +120,9 @@ public class STAllocatorTester {
                             
                 // Range In->In checken
                 testRange(address, size, true);
+
+                System.out.println("PASSED: Pagesize " + originalSize + " REALLOC-");
+
             }
 
             /*
@@ -141,12 +147,13 @@ public class STAllocatorTester {
             // Range In->Boven checken
             testRange(address, size + 1, false);
 
-            System.out.println("PASSED: Pagesize " + originalSize);
+            System.out.println("PASSED: Pagesize " + originalSize + " FREE");
+            
         }
 
         Random random = new Random();
 
-        int amountOfTests = 5000;
+        int amountOfTests = 1000;
 
         Long[] addresses = new Long[amountOfTests];
         int[] sizesList = new int[amountOfTests];
@@ -165,7 +172,7 @@ public class STAllocatorTester {
             addresses[i] = address;
         }
 
-        System.out.println("PASSED: " + amountOfTests + " random allocations");
+        System.out.println("PASSED: " + amountOfTests + " RANDOM MALLOC");
 
         for(int i = 0; i < amountOfTests; i++) {
             Long addr = addresses[i];
@@ -182,7 +189,7 @@ public class STAllocatorTester {
             sizesList[i] = size;
         }
 
-        System.out.println("PASSED: " + amountOfTests + " random reAllocations");
+        System.out.println("PASSED: " + amountOfTests + " RANDOM REALLOC");
 
         for(int i = 0; i < amountOfTests; i++) {
             states = new String[4];
@@ -197,7 +204,7 @@ public class STAllocatorTester {
             testRange(addr, size, false);
         }
 
-        System.out.println("PASSED: " + amountOfTests + " random frees");
+        System.out.println("PASSED: " + amountOfTests + " RANDOM FREE");
         
         throw new TesterException("                                                ALL STALLOCATOR TESTS PASSED");
     }

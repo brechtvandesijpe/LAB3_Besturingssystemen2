@@ -3,11 +3,12 @@ package Allocator;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.Semaphore;
 
 import Debugger.Logger;
 
 public class MTAllocator implements Allocator {
-    public HashMap<Long, STAllocator> allocators;;
+    public HashMap<String, STAllocator> allocators;;
 
     private Logger logger;
 
@@ -20,24 +21,28 @@ public class MTAllocator implements Allocator {
     }
 
     /**
+     * @param createIfNotExists
      * @return
      * 
-     * Returns the single-threaded allocator pf the current thread
+     * Returns the single-threaded allocator of the current thread, if createIfnotExists is true a new allocator can be created when the
+     * current thread has no allocator yet
      */
 
     public STAllocator getAllocator(boolean createIfNotExists) {
-        Long threadId = Thread.currentThread().getId();
+        String threadName = Thread.currentThread().getName();
 
         lock.readLock().lock();
-        STAllocator allocator = allocators.get(threadId);
+        STAllocator allocator = allocators.get(threadName);
         lock.readLock().unlock();
 
-        if(createIfNotExists && allocator == null) {
-            allocator = new STAllocator();
-
-            lock.writeLock().lock();
-            allocators.put(threadId, allocator);
-            lock.writeLock().unlock();
+        if(allocator == null) {
+            if(createIfNotExists) {
+                allocator = new STAllocator();
+    
+                lock.writeLock().lock();
+                allocators.put(threadName, allocator);
+                lock.writeLock().unlock();
+            } else throw new AllocatorException("Allocator does not exist");
         }
 
         return allocator;
@@ -58,9 +63,7 @@ public class MTAllocator implements Allocator {
         if(allocator == null)
             throw new NullPointerException();
             
-        synchronized(allocator) {
-            address = allocator.allocate(size);
-        }
+        address = allocator.allocate(size);
 
         return address;
     }
@@ -81,7 +84,7 @@ public class MTAllocator implements Allocator {
             synchronized(allocator) {
                 allocator.free(address);
             }
-        } catch(NullPointerException e) {
+        } catch(AllocatorException e) {
             boolean found = false;
             
             lock.readLock().lock();
@@ -122,6 +125,7 @@ public class MTAllocator implements Allocator {
         for(STAllocator a : allocators.values()) {
             synchronized(a) {
                 if(a.isAccessible(address, size)) {
+                    lock.readLock().unlock();
                     return true;
                 }
             }
