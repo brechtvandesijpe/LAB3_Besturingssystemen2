@@ -78,8 +78,6 @@ public class MTAllocator implements Allocator {
         try {
             STAllocator allocator = getAllocator(false);
 
-            lock.readLock().lock();
-            
             synchronized(allocator) {
                 allocator.free(address);
             }
@@ -89,7 +87,9 @@ public class MTAllocator implements Allocator {
             for(STAllocator allocator : allocators.values()) {
                 try {
                     found = true;
-                    allocator.free(address);
+                    synchronized(allocator) {
+                        allocator.free(address);
+                    }
                 } catch(AllocatorException e2) {
                     found = false;
                 }
@@ -97,8 +97,6 @@ public class MTAllocator implements Allocator {
                 if(found)
                     break;
             }
-        } finally {
-            lock.readLock().unlock();
         }
     }
 
