@@ -3,7 +3,7 @@ package Debugger;
 import Allocator.STAllocator;
 import java.util.Random;
 
-public class STAllocatorTester {
+public class STAllocatorDebugger {
     private STAllocator allocator;
 
     private Long address;
@@ -16,7 +16,7 @@ public class STAllocatorTester {
 
     private String[] states;
     
-    public STAllocatorTester(boolean debug) {
+    public STAllocatorDebugger(boolean debug) {
         allocator = new STAllocator();
         address = null;
         logger = Logger.getInstance();

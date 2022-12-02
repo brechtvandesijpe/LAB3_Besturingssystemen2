@@ -3,8 +3,6 @@ package Allocator;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.lang.Math;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import Debugger.Logger;
 
@@ -13,12 +11,9 @@ public class STAllocator implements Allocator {
 
     private Logger logger;
 
-    private ReadWriteLock lock;
-
     public STAllocator() {
         arenas = new TreeMap<>();
         this.logger = Logger.getInstance();
-        lock = new ReentrantReadWriteLock();
     }
 
     private int baseTwo(int number) {
@@ -46,17 +41,13 @@ public class STAllocator implements Allocator {
         int roundedSizeBaseBlockSize = baseBlockSize(size);
 
         // Get the arena with the given size
-        lock.readLock().lock();
         Arena arena = arenas.get(roundedSizeBaseTwo);
 
         if(arena == null)
             arena = arenas.get(roundedSizeBaseBlockSize);
-        
-        lock.readLock().unlock();
 
         // If the arena doesn't exist, create it    
         if(arena == null) {
-            lock.writeLock().lock();
             if(size > Block.UNIT_BLOCK_SIZE) {
                 arena = new Arena(roundedSizeBaseBlockSize);
                 arenas.put(roundedSizeBaseBlockSize, arena);
@@ -64,7 +55,6 @@ public class STAllocator implements Allocator {
                 arena = new Arena(Block.UNIT_BLOCK_SIZE, roundedSizeBaseTwo);
                 arenas.put(roundedSizeBaseTwo, arena);
             }
-            lock.writeLock().unlock();
         }
 
         // Allocate a new block from the arena
@@ -84,22 +74,15 @@ public class STAllocator implements Allocator {
         Arena arena = null;
 
         try {
-            lock.readLock().lock();
             for(Arena a : arenas.values()) {
                 if(a.isAccessible(address, 1)) {
                     arena = a;
                     arena.free(address);
-                    lock.readLock().unlock();
                     return;
                 }
             }
-            lock.readLock().unlock();
         } catch(ArenaException e) {
-            lock.readLock().unlock();
-
-            lock.writeLock().lock();
             arenas.remove(arena.getPageSize());
-            lock.writeLock().unlock();
             return;
         }
 
@@ -123,15 +106,12 @@ public class STAllocator implements Allocator {
         Arena arena = null;
 
         // Get the arena where the address is present
-        lock.readLock().lock();
         for(Arena a : arenas.values()) {
             if(a.isAccessible(oldAddress, 1)) {
                 arena = a;
-                lock.readLock().unlock();
                 break;
             }
         }
-        lock.readLock().unlock();
 
         // If the arena is null, the address is not allocated and thus cannot be reallocated
         if(arena == null)
@@ -171,14 +151,11 @@ public class STAllocator implements Allocator {
      */
 
     public boolean isAccessible(Long address, int size) {
-        lock.readLock().lock();
         for(Arena arena : arenas.values()) {
             if(arena.isAccessible(address, size)) {
-                lock.readLock().unlock();
                 return true;
             }
         }
-        lock.readLock().unlock();
         
         return false;
     }

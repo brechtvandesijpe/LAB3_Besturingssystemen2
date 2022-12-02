@@ -5,7 +5,7 @@ import Allocator.BlockException;
 import java.util.Random;
 import java.util.LinkedList;
 
-public class BlockTester {
+public class BlockDebugger {
     private int blockSize;
     
     private int pageSize;
@@ -22,7 +22,7 @@ public class BlockTester {
 
     private String[] states;
     
-    public BlockTester(boolean debug) throws BlockException {
+    public BlockDebugger(boolean debug) throws BlockException {
         address = null;
         
         logger = Logger.getInstance();

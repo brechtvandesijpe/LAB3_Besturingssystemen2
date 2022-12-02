@@ -5,10 +5,10 @@ import Allocator.BlockException;
 public class Main {
     public static void main(String[] args) throws BlockException {
         System.out.println("============================================================================================================================");
-        System.out.println("                                                        BLOCK TESTER");
+        System.out.println("                                                       BLOCK DEBUGGER");
         
         try {
-            BlockTester blockTester = new BlockTester(false);
+            BlockDebugger blockTester = new BlockDebugger(false);
             blockTester.test();
         } catch(TesterFailedException e) {
             System.out.println("                                                         TEST FAILED");
@@ -19,10 +19,10 @@ public class Main {
             System.out.println("============================================================================================================================");
         }
         
-        System.out.println("                                                        ARENA TESTER");
+        System.out.println("                                                       ARENA DEBUGGER");
 
         try {
-            ArenaTester arenaTester = new ArenaTester(false);
+            ArenaDebugger arenaTester = new ArenaDebugger(false);
             arenaTester.test();
         } catch(TesterFailedException e) {
             System.out.println("                                                         TEST FAILED");
@@ -33,32 +33,32 @@ public class Main {
             System.out.println("============================================================================================================================");
         }
 
-        System.out.println("                                                     STALLOCATOR TESTER");
+            System.out.println("                                                      STALLOCATOR DEBUGGER");
 
         try {
-            STAllocatorTester allocatorTester = new STAllocatorTester(false);
+            STAllocatorDebugger allocatorTester = new STAllocatorDebugger(false);
             allocatorTester.test();
         } catch(TesterFailedException e) {
             System.out.println("                                                         TEST FAILED");
             System.out.println("============================================================================================================================");
             return;
         } catch(TesterSuccessException e) {
-            System.out.println("                                                ALL STALLOCATOR TESTS PASSED");
+            System.out.println("                                                 ALL STALLOCATOR TESTS PASSED");
             System.out.println("============================================================================================================================");
         }
 
-        System.out.println("                                                      ALLOCATOR TESTER");
+        System.out.println("                                                     ALLOCATOR DEBUGGER");
 
         try {
-            AllocatorTester allocatorTester = new AllocatorTester(false);
+            AllocatorDebugger allocatorTester = new AllocatorDebugger(false);
             allocatorTester.test();
         } catch(TesterFailedException e7) {
-            System.out.println(e7.getMessage());
+            System.out.println("                                                         TEST FAILED");
             System.out.println("============================================================================================================================");
-            if(e7.getMessage().contains("FAIL")) return;
         } catch(TesterSuccessException e) {
             System.out.println("                                                 ALL ALLOCATOR TESTS PASSED");
             System.out.println("============================================================================================================================");
         }
+        Logger.getInstance().log("here");
     }
 }

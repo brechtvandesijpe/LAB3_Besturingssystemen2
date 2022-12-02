@@ -5,7 +5,7 @@ import Allocator.AllocatorException;
 import Allocator.ArenaException;
 import Allocator.Block;
 
-public class ArenaTester {
+public class ArenaDebugger {
     private int blockSize;
     
     private int pageSize;
@@ -22,7 +22,7 @@ public class ArenaTester {
 
     private String[] states;
     
-    public ArenaTester(boolean debug) {
+    public ArenaDebugger(boolean debug) {
         this.blockSize = 0;
         this.pageSize = 0;
         
