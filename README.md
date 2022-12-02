@@ -1,6 +1,5 @@
 # LAB3_Besturingssystemen2
 Github: https://github.com/brechtvandesijpe/LAB3_Besturingssystemen2
----
 
 ## Allocator
 De Allocator package bevat volgende onderdelen:
