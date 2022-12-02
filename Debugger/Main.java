@@ -10,8 +10,12 @@ public class Main {
         try {
             BlockTester blockTester = new BlockTester(false);
             blockTester.test();
-        } catch(TesterException e) {
-            System.out.println(e.getMessage());
+        } catch(TesterFailedException e) {
+            System.out.println("                                                         TEST FAILED");
+            System.out.println("============================================================================================================================");
+            return;
+        } catch(TesterSuccessException e) {
+            System.out.println("                                                   ALL BLOCK TESTS PASSED");
             System.out.println("============================================================================================================================");
         }
         
@@ -20,8 +24,12 @@ public class Main {
         try {
             ArenaTester arenaTester = new ArenaTester(false);
             arenaTester.test();
-        } catch(TesterException e) {
-            System.out.println(e.getMessage());
+        } catch(TesterFailedException e) {
+            System.out.println("                                                         TEST FAILED");
+            System.out.println("============================================================================================================================");
+            return;
+        } catch(TesterSuccessException e) {
+            System.out.println("                                                   ALL ARENA TESTS PASSED");
             System.out.println("============================================================================================================================");
         }
 
@@ -30,8 +38,12 @@ public class Main {
         try {
             STAllocatorTester allocatorTester = new STAllocatorTester(false);
             allocatorTester.test();
-        } catch(TesterException e) {
-            System.out.println(e.getMessage());
+        } catch(TesterFailedException e) {
+            System.out.println("                                                         TEST FAILED");
+            System.out.println("============================================================================================================================");
+            return;
+        } catch(TesterSuccessException e) {
+            System.out.println("                                                ALL STALLOCATOR TESTS PASSED");
             System.out.println("============================================================================================================================");
         }
 
@@ -40,8 +52,12 @@ public class Main {
         try {
             AllocatorTester allocatorTester = new AllocatorTester(false);
             allocatorTester.test();
-        } catch(TesterException e) {
-            System.out.println(e.getMessage());
+        } catch(TesterFailedException e7) {
+            System.out.println(e7.getMessage());
+            System.out.println("============================================================================================================================");
+            if(e7.getMessage().contains("FAIL")) return;
+        } catch(TesterSuccessException e) {
+            System.out.println("                                                 ALL ALLOCATOR TESTS PASSED");
             System.out.println("============================================================================================================================");
         }
     }

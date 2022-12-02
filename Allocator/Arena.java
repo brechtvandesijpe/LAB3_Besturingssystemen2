@@ -76,12 +76,14 @@ public class Arena {
 
     public Long allocate() {
         try {
-            for(Block block : memoryBlocks){
-                if(block.hasFreePages())
-                    return block.allocate();
-            }
+            synchronized(memoryBlocks) {
+                for(Block block : memoryBlocks){
+                    if(block.hasFreePages())
+                        return block.allocate();
+                }
 
-            memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
+                memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
+            }
             return allocate();
         } catch (BlockException e) {
             logger.log(e.getMessage());
@@ -97,19 +99,21 @@ public class Arena {
      */
 
     public void free(Long address) throws AllocatorException, ArenaException {
-        for(Block block : memoryBlocks){
-            if(block.isAccessible(address)) {
-                try {
-                    block.free(address);
-                } catch (BlockException e) {
-                    memoryBlocks.remove(block);
-                    backingStore.munmap(block.getStartAddress(), block.getBlockSize());
-                    
-                    if(memoryBlocks.isEmpty())
-                        throw new ArenaException("No blocks in the arena");
-                }
+        synchronized(memoryBlocks) {
+            for(Block block : memoryBlocks){
+                if(block.isAccessible(address)) {
+                    try {
+                        block.free(address);
+                    } catch (BlockException e) {
+                        memoryBlocks.remove(block);
+                        backingStore.munmap(block.getStartAddress(), block.getBlockSize());
+                        
+                        if(memoryBlocks.isEmpty())
+                            throw new ArenaException("No blocks in the arena");
+                    }
 
-                return;
+                    return;
+                }
             }
         }
 
@@ -124,12 +128,7 @@ public class Arena {
      */
 
     public boolean isAccessible(Long address) {
-        for(Block block : memoryBlocks){
-            if(block.isAccessible(address))
-                return true;
-        }
-
-        return false;
+        return isAccessible(address, 1);
     }
 
     /**
@@ -140,9 +139,11 @@ public class Arena {
      */
 
     public boolean isAccessible(Long address, int range) {
-        for(Block block : memoryBlocks){
-            if(block.isAccessible(address, range))
-                return true;
+        synchronized(memoryBlocks) {
+            for(Block block : memoryBlocks){
+                if(block.isAccessible(address, range))
+                    return true;
+            }
         }
 
         return false;
@@ -152,12 +153,12 @@ public class Arena {
     public String toString() {
         StringBuilder sb = new StringBuilder();
 
-        for(int i = 0; i < memoryBlocks.size(); i++) {
-            sb.append(memoryBlocks.get(i).toString());
+        synchronized(memoryBlocks) {
+            for(int i = 0; i < memoryBlocks.size(); i++) {
+                sb.append(memoryBlocks.get(i).toString());
+            }
         }
 
         return sb.toString();
     }
 }
-
-

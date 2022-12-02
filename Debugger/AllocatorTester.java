@@ -23,12 +23,12 @@ public class AllocatorTester {
         this.debug = debug;
     }
 
-    public void testRange(Long startAddress, int range, boolean condition) throws TesterException {
+    public void testRange(Long startAddress, int range, boolean condition) throws TesterFailedException {
         if(allocator.isAccessible(startAddress, range) != condition) {
             printStates();
             logger.log("Expected " + condition + " for address " + startAddress
                             + (range <= 1 ? "" : " and range " + range + " with size " + size), 1);
-                            throw new TesterException("                                                         TEST FAILED");
+            throw new TesterFailedException();
         }
     }
 
@@ -38,7 +38,7 @@ public class AllocatorTester {
         }
     }
 
-    public void test() throws TesterException {
+    public void test() throws TesterFailedException, TesterSuccessException {
         int[] sizes = {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,12288};
 
         for(int i = 0; i < sizes.length; i++) {
@@ -390,6 +390,6 @@ public class AllocatorTester {
 
         System.out.println("PASSED: " + amountOfTests + " RANDOM FREE (DIFFERENT THREAD)");
         
-        throw new TesterException("                                                 ALL ALLOCATOR TESTS PASSED");
+        throw new TesterSuccessException();
     }
 }

@@ -33,11 +33,11 @@ public class ArenaTester {
         this.debug = debug;
     }
 
-    public void testRange(Long startAddress, int range, boolean condition) throws TesterException {
+    public void testRange(Long startAddress, int range, boolean condition) throws TesterFailedException {
         if(arena.isAccessible(startAddress, range) != condition) {
             printStates();
             logger.log("Expected " + condition + " for address " + startAddress + (range <= 1 ? "" : " and range " + range), 1);
-            throw new TesterException("                                                         TEST FAILED");
+            throw new TesterFailedException();
         }
     }
 
@@ -47,7 +47,7 @@ public class ArenaTester {
         }
     }
 
-    public void test() throws TesterException {
+    public void test() throws TesterFailedException, TesterSuccessException {
         int[][] sizes = {{Block.UNIT_BLOCK_SIZE, 1},
                          {Block.UNIT_BLOCK_SIZE, 2},
                          {Block.UNIT_BLOCK_SIZE, 4},
@@ -198,6 +198,6 @@ public class ArenaTester {
             System.out.println("PASSED: Pagesize " + pageSize);
         }
             
-        throw new TesterException("                                                   ALL ARENA TESTS PASSED");
+        throw new TesterSuccessException();
     }
 }

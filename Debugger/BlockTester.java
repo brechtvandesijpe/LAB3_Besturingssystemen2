@@ -30,11 +30,11 @@ public class BlockTester {
         this.debug = debug;
     }
 
-    public void testRange(Long startAddress, int range, boolean condition) throws TesterException {
+    public void testRange(Long startAddress, int range, boolean condition) throws TesterFailedException {
         if(block.isAccessible(startAddress, range) != condition) {
             printStates();
             logger.log("Expected " + condition + " for address " + startAddress + (range <= 1 ? "" : " and range " + range), 1);
-            throw new TesterException("                                                         TEST FAILED");
+            throw new TesterFailedException("                                                         TEST FAILED");
         }
     }
 
@@ -44,7 +44,14 @@ public class BlockTester {
         }
     }
 
-    public void test() throws BlockException, TesterException {
+    public void test() throws BlockException, TesterFailedException, TesterSuccessException {
+
+        /*
+         * ===========================================================================
+         * ============================SINGLETHREADED TEST============================
+         * ===========================================================================
+         */
+
         int[][] sizes = {{Block.UNIT_BLOCK_SIZE, 1},
                          {Block.UNIT_BLOCK_SIZE, 2},
                          {Block.UNIT_BLOCK_SIZE, 4},
@@ -248,15 +255,15 @@ public class BlockTester {
                 System.out.println("PASSED: Random allocation");
             else {
                 logger.log("Not all addresses were allocated when they should have been");
-                throw new TesterException("                                                         TEST FAILED");
+                throw new TesterFailedException();
             }
         }
 
         if(!emptyFlag) {
             logger.log("Not all addresses were freed when they should have been");
-            throw new TesterException("                                                         TEST FAILED");
+            throw new TesterFailedException();
         }
-        
-        throw new TesterException("                                                   ALL BLOCK TESTS PASSED");
+
+        throw new TesterSuccessException();
     }
 }
