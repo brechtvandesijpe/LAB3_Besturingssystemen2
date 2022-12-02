@@ -32,7 +32,7 @@ public class STAllocator implements Allocator {
      * Allocates a new arena of the given size
      */
 
-    public synchronized Long allocate(int size) throws AllocatorException {
+    public Long allocate(int size) throws AllocatorException {
         // If the size is illegal throw an exception
         if(size <= 0)
             throw new AllocatorException("Size can't be negative or zero");
@@ -70,7 +70,7 @@ public class STAllocator implements Allocator {
      * Frees the arena where the address is present
      */
 
-    public synchronized void free(Long address) throws AllocatorException {
+    public void free(Long address) throws AllocatorException {
         Arena arena = null;
 
         try {
@@ -103,26 +103,26 @@ public class STAllocator implements Allocator {
         if(newSize <= 0)
             throw new AllocatorException("Size can't be negative or zero");
 
-        // Arena arena = null;
+        Arena arena = null;
 
-        // // Get the arena where the address is present
-        // for(Arena a : arenas.values()) {
-        //     if(a.isAccessible(oldAddress, 1)) {
-        //         arena = a;
-        //         break;
-        //     }
-        // }
+        // Get the arena where the address is present
+        for(Arena a : arenas.values()) {
+            if(a.isAccessible(oldAddress, 1)) {
+                arena = a;
+                break;
+            }
+        }
 
-        // // If the arena is null, the address is not allocated and thus cannot be reallocated
-        // if(arena == null)
-        //     throw new AllocatorException("Address is not allocated");
+        // If the arena is null, the address is not allocated and thus cannot be reallocated
+        if(arena == null)
+            throw new AllocatorException("Address is not allocated");
 
-        // // Get the old size of the allocation
-        // int oldSize = arena.getPageSize();
+        // Get the old size of the allocation
+        int oldSize = arena.getPageSize();
         
-        // // If the old size is greater or the same as the new size, return the old address
-        // if(oldSize >= newSize)
-        //     return oldAddress;
+        // If the old size is greater or the same as the new size, return the old address
+        if(oldSize >= newSize)
+            return oldAddress;
 
         // Free the old address
         free(oldAddress);
@@ -138,7 +138,7 @@ public class STAllocator implements Allocator {
      * Checks if the address is allocated
      */
 
-    public synchronized boolean isAccessible(Long address) {
+    public boolean isAccessible(Long address) {
         return isAccessible(address, 1);
     }
 
@@ -150,7 +150,7 @@ public class STAllocator implements Allocator {
      * Checks if the address with given size is allocated
      */
 
-    public synchronized boolean isAccessible(Long address, int size) {
+    public boolean isAccessible(Long address, int size) {
         for(Arena arena : arenas.values()) {
             if(arena.isAccessible(address, size))
                 return true;

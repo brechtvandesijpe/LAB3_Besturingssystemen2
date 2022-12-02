@@ -57,14 +57,11 @@ public class MTAllocator implements Allocator {
 
         if(allocator == null)
             throw new NullPointerException();
-
-        lock.readLock().lock();
             
         synchronized(allocator) {
             address = allocator.allocate(size);
         }
 
-        lock.readLock().unlock();
         return address;
     }
 

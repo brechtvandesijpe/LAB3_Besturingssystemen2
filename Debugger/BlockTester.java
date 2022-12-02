@@ -2,6 +2,8 @@ package Debugger;
 
 import Allocator.Block;
 import Allocator.BlockException;
+import java.util.Random;
+import java.util.LinkedList;
 
 public class BlockTester {
     private int blockSize;
@@ -191,6 +193,68 @@ public class BlockTester {
             testRange(address, pageSize + 1, false);
 
             System.out.println("PASSED: Pagesize " + pageSize);
+        }
+
+        pageSize = 8;
+        block = new Block(0L, pageSize, Block.UNIT_BLOCK_SIZE);
+        LinkedList<Long> addresses = new LinkedList<>();
+        
+        boolean fullFLag = false;
+        boolean emptyFlag = false;
+
+        try {
+            for(int i = 0; i < 513; i++) {
+                address = block.allocate();
+                addresses.add(address);
+
+                // Enkele adressen checken
+                for(int offset = 0; offset < pageSize; offset++)
+                    testRange(address + offset, 1, true);
+
+                // Range Onder->In checken
+                testRange(address - 1, 2, false);
+                
+                // Range In->In checken
+                testRange(address, pageSize, true);
+
+                // Range In->Boven checken
+                testRange(address, pageSize + 1, false);
+            }
+        } catch(BlockException e) {
+            fullFLag = true;
+        }
+
+        try {
+            for(Long a : addresses) {
+                block.free(a);
+
+                // Enkele adressen checken
+                for(int offset = 0; offset < pageSize; offset++)
+                    testRange(a + offset, 1, false);
+
+                // Range Onder->In checken
+                testRange(a - 1, 2, false);
+                
+                // Range In->In checken
+                testRange(a, pageSize, false);
+
+                // Range In->Boven checken
+                testRange(a, pageSize + 1, false);
+            }
+        } catch(BlockException e) {
+            emptyFlag = true;
+
+            if(fullFLag)
+                System.out.println("PASSED: Random allocation");
+            else {
+                logger.log("Not all addresses were allocated when they should have been");
+                throw new TesterException("                                                         TEST FAILED");
+            }
+        }
+
+        if(!emptyFlag) {
+            logger.log("Not all addresses were freed when they should have been");
+            throw new TesterException("                                                         TEST FAILED");
         }
         
         throw new TesterException("                                                   ALL BLOCK TESTS PASSED");

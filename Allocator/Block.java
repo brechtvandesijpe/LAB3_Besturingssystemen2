@@ -165,8 +165,10 @@ public class Block {
         StringBuilder sb = new StringBuilder();
         sb.append("[");
 
-        for(int i = 0; i < (blockSize / pageSize); i++)
-            sb.append(allocatedPages.get(i) ? "1" : "0");
+        // for(int i = 0; i < (blockSize / pageSize); i++)
+        //     sb.append(allocatedPages.get(i) ? "1" : "0");
+
+        sb.append(startAddress);
 
         sb.append("]");
         return sb.toString();

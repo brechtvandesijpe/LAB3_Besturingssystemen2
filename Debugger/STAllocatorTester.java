@@ -1,7 +1,7 @@
 package Debugger;
 
-import Allocator.AllocatorException;
 import Allocator.STAllocator;
+import java.util.Random;
 
 public class STAllocatorTester {
     private STAllocator allocator;
@@ -143,6 +143,61 @@ public class STAllocatorTester {
 
             System.out.println("PASSED: Pagesize " + originalSize);
         }
+
+        Random random = new Random();
+
+        int amountOfTests = 5000;
+
+        Long[] addresses = new Long[amountOfTests];
+        int[] sizesList = new int[amountOfTests];
+
+        
+        for(int i = 0; i < amountOfTests; i++) {
+            size = random.nextInt(1, 20000);
+            states = new String[4];
+
+            states[0] = allocator.toString();
+            address = allocator.allocate(size);
+            states[0] = allocator.toString();
+
+            testRange(address, size, true);
+
+            addresses[i] = address;
+        }
+
+        System.out.println("PASSED: " + amountOfTests + " random allocations");
+
+        for(int i = 0; i < amountOfTests; i++) {
+            Long addr = addresses[i];
+            size = random.nextInt(1, 20000);
+            states = new String[4];
+
+            states[0] = allocator.toString();
+            address = allocator.reAllocate(addr, size);
+            states[1] = allocator.toString();
+            
+            testRange(address, size, true);
+            
+            addresses[i] = address;
+            sizesList[i] = size;
+        }
+
+        System.out.println("PASSED: " + amountOfTests + " random reAllocations");
+
+        for(int i = 0; i < amountOfTests; i++) {
+            states = new String[4];
+
+            Long addr = addresses[i];
+            
+            states[0] = allocator.toString();
+            allocator.free(addr);
+            states[1] = allocator.toString();
+
+            size = sizesList[i];
+            testRange(addr, size, false);
+        }
+
+        System.out.println("PASSED: " + amountOfTests + " random frees");
         
         throw new TesterException("                                                ALL STALLOCATOR TESTS PASSED");
     }

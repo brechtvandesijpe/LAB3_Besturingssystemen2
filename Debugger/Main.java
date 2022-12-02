@@ -33,6 +33,7 @@ public class Main {
         } catch(TesterException e) {
             System.out.println(e.getMessage());
             System.out.println("============================================================================================================================");
+            return;
         }
     }
 }
