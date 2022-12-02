@@ -47,5 +47,5 @@ public interface Allocator {
      * In addition, this method should verify that all addresses 
      * in the range belong to the same block of memory. 
      */
-    public boolean isAccessible(Long address, int size);
+    public boolean isAccessible(Long address, int range);
 }

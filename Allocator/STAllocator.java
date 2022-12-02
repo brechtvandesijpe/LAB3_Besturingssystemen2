@@ -7,18 +7,35 @@ import java.lang.Math;
 import Debugger.Logger;
 
 public class STAllocator implements Allocator {
-    private NavigableMap<Integer, Arena> arenas;
+    private NavigableMap<Integer, Arena> arenas;        // map of arenas with their size as key
+    private Logger logger;                              // For logging of events while debugging
 
-    private Logger logger;
+    /**
+     * Constructor for the STAllocator.
+     */
 
     public STAllocator() {
         arenas = new TreeMap<>();
         this.logger = Logger.getInstance();
     }
 
+    /**
+     * @param number
+     * @return int
+     * 
+     * Method to get the next power of two following on a number.
+     */
+
     private int baseTwo(int number) {
         return (int) (Math.pow(2, Math.ceil(Math.log(number) / Math.log(2))));
     }
+
+    /**
+     * @param number
+     * @return int
+     * 
+     * Method to get the next multiple of the minimal blocksize following on a number.
+     */
 
     private int baseBlockSize(int number) {
         return (int) (Block.UNIT_BLOCK_SIZE * Math.ceil((double) number / (double) Block.UNIT_BLOCK_SIZE));
@@ -27,9 +44,9 @@ public class STAllocator implements Allocator {
     /**
      * @param size
      * @throws AllocatorException
-     * @return
+     * @return Long
      * 
-     * Allocates a new arena of the given size
+     * Allocates a size of memory
      */
 
     public Long allocate(int size) throws AllocatorException {
@@ -37,7 +54,10 @@ public class STAllocator implements Allocator {
         if(size <= 0)
             throw new AllocatorException("Size can't be negative or zero");
         
+        // Calculate the pageSize in case the block is smaller than 4096 bytes (next power of 2)
         int roundedSizeBaseTwo = baseTwo(size);
+        
+        // Calculate the pageSize in case the block is bigger than 4096 bytes (next multiple of 4096)
         int roundedSizeBaseBlockSize = baseBlockSize(size);
 
         // Get the arena with the given size
@@ -49,6 +69,7 @@ public class STAllocator implements Allocator {
         // If the arena doesn't exist, create it    
         if(arena == null) {
             if(size > Block.UNIT_BLOCK_SIZE) {
+                // In case we give full blocks the pageSize equals the whole block
                 arena = new Arena(roundedSizeBaseBlockSize);
                 arenas.put(roundedSizeBaseBlockSize, arena);
             } else {
@@ -65,7 +86,7 @@ public class STAllocator implements Allocator {
     /**
      * @param address
      * @exception AllocatorException
-     * @return
+     * @return void
      * 
      * Frees the arena where the address is present
      */
@@ -74,6 +95,7 @@ public class STAllocator implements Allocator {
         Arena arena = null;
 
         try {
+            // Iterate over all the arena's and when the address is found, free it
             for(Arena a : arenas.values()) {
                 if(a.isAccessible(address, 1)) {
                     arena = a;
@@ -81,7 +103,7 @@ public class STAllocator implements Allocator {
                     return;
                 }
             }
-        } catch(ArenaException e) {
+        } catch(ArenaException e) { // In case the arena throws an exception, the arena is ampty and thus shoudl be cleaned up
             arenas.remove(arena.getPageSize());
             return;
         }
@@ -93,7 +115,7 @@ public class STAllocator implements Allocator {
      * @param oldAddress
      * @param newSize
      * @throws AllocatorException
-     * @return
+     * @return Long
      * 
      * Reallocates an old allocation to a new size
      */
@@ -133,7 +155,7 @@ public class STAllocator implements Allocator {
 
     /**
      * @param address
-     * @return
+     * @return boolean
      * 
      * Checks if the address is allocated
      */
@@ -144,15 +166,16 @@ public class STAllocator implements Allocator {
 
     /**
      * @param address
-     * @param size
-     * @return
+     * @param range
+     * @return boolean
      * 
-     * Checks if the address with given size is allocated
+     * Checks if the address with given range is allocated
      */
 
-    public boolean isAccessible(Long address, int size) {
+    public boolean isAccessible(Long address, int range) {
+        // Iterate over all the arenas and check if the address is accessible, if so return true
         for(Arena arena : arenas.values()) {
-            if(arena.isAccessible(address, size)) {
+            if(arena.isAccessible(address, range)) {
                 return true;
             }
         }
@@ -160,14 +183,14 @@ public class STAllocator implements Allocator {
         return false;
     }
 
+    /**
+     * @return String
+     * 
+     * Visualizes the current state of allocator
+     */
+
     @Override
     public String toString() {
-        // StringBuilder sb = new StringBuilder();
-
-        // for(Arena arena : arenas.values())
-        //     sb.append(arena.toString() + " ");
-
-        // return sb.toString();
         return arenas + "";
     }
 }

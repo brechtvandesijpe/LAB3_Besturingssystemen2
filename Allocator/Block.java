@@ -6,15 +6,15 @@ import java.util.*;
 import Debugger.*;
 
 public class Block {
-    public static final int UNIT_BLOCK_SIZE = 4096;
+    public static final int UNIT_BLOCK_SIZE = 4096;     // minimal size of blocks that the backingstore returns
 
-    private final Long startAddress;        // start address of the block
-    private final int pageSize;             // size of the pages in the block in bytes
-    private final int blockSize;            // size of the block in bytes
+    private final Long startAddress;                    // start address of the block
+    private final int pageSize;                         // size of the pages in the block in bytes
+    private final int blockSize;                        // size of the block in bytes
     
-    private BitSet allocatedPages;
+    private BitSet allocatedPages;                      // bitset to keep track of the allocated pages
 
-    private Logger logger;
+    private Logger logger;                              // logger for debugging
 
     /**
      * @param startAddress
@@ -143,32 +143,41 @@ public class Block {
      */
 
     public boolean isAccessible(Long address, int range) {
+        // Calculate the relative address within the block
         address -= startAddress;
 
+        // Safety check
         if(range == 0)
             throw new IllegalArgumentException("Range is zero");
 
+        // Check if all addresses in the range will be within the bounds of the block
         if(address < 0 || address > blockSize || (address + range) < 0 || (address + range) > blockSize)
             return false;
 
+        // Calculate the indexes of the page of the address itself and the last address of the range
         int pageIndexAddress = (int) Math.floor(address / pageSize);
-        int pageIndexRange = (int) Math.floor((address + range - 1) / pageSize);
+        int pageIndexRange = (int) Math.floor((address + range - 1) / pageSize); // Since the range is exclusive, we need to subtract 1
 
+        // If the page indexes are not the same, the range will never be in the same page
         if(pageIndexAddress != pageIndexRange)
             return false;
         
+        // All the addresses are definitely in the same page, so we can check if the page is allocated and that will be the result
         return allocatedPages.get(pageIndexAddress);
     }
+
+    /**
+     * @return String
+     * Method to visualise the block's insides.
+     */
     
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("[");
 
-        // for(int i = 0; i < (blockSize / pageSize); i++)
-        //     sb.append(allocatedPages.get(i) ? "1" : "0");
-
-        sb.append(startAddress);
+        for(int i = 0; i < (blockSize / pageSize); i++)
+            sb.append(allocatedPages.get(i) ? "1" : "0");
 
         sb.append("]");
         return sb.toString();
