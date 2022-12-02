@@ -46,14 +46,14 @@ public class Transaction {
         if (ENABLE_ALLOCATOR) {
             size = Math.max(16, Math.random() < 0.5 ? size/2 : size*2);
             address = Allocator.instance.reAllocate(address, size);
-            // ensureAllocated(true);
+            ensureAllocated(true);
         }
     }
 
     public void release() {
         if (ENABLE_ALLOCATOR) {
             Allocator.instance.free(address);
-            // ensureAllocated(false);
+            ensureAllocated(false);
         }
     }
 

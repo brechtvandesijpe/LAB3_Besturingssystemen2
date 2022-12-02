@@ -84,6 +84,8 @@ public class MTAllocator implements Allocator {
         } catch(NullPointerException e) {
             boolean found = false;
             
+            lock.readLock().lock();
+            
             for(STAllocator allocator : allocators.values()) {
                 try {
                     found = true;
@@ -97,6 +99,8 @@ public class MTAllocator implements Allocator {
                 if(found)
                     break;
             }
+
+            lock.readLock().unlock();
         }
     }
 
@@ -118,7 +122,6 @@ public class MTAllocator implements Allocator {
         for(STAllocator a : allocators.values()) {
             synchronized(a) {
                 if(a.isAccessible(address, size)) {
-                    lock.readLock().unlock();
                     return true;
                 }
             }
