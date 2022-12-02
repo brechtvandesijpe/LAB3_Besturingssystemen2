@@ -33,6 +33,16 @@ public class ArenaDebugger {
         this.debug = debug;
     }
 
+    /**
+     * @param startAddress
+     * @param range
+     * @param condition
+     * @throws TesterFailedException
+     * @return void
+     * 
+     * Test a condition for a range of addresses. If not met fail the debugger.
+     */
+
     public void testRange(Long startAddress, int range, boolean condition) throws TesterFailedException {
         if(arena.isAccessible(startAddress, range) != condition) {
             printStates();
@@ -41,11 +51,23 @@ public class ArenaDebugger {
         }
     }
 
+    /**
+     * Print the trace of states during the test
+     */
+
     private void printStates() {
         for(String s : states) {
             if(s != null) logger.log(s,1);
         }
     }
+
+    /**
+     * @throws TesterFailedException
+     * @throws TesterSuccessException
+     * @return void
+     * 
+     * Excecute the test for the debugging
+     */
 
     public void test() throws TesterFailedException, TesterSuccessException {
         int[][] sizes = {{Block.UNIT_BLOCK_SIZE, 1},
@@ -77,21 +99,21 @@ public class ArenaDebugger {
             Long address2 = arena.allocate();
             states[1] = arena.toString();
 
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++) {
                 testRange(address + offset, 1, true);
                 testRange(address2 + offset, 1, true);
             }
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
             testRange(address2 - 1, 2, false);
             
-            // Range In->In checken
+            // Check range In->In block
             testRange(address, pageSize, true);
             testRange(address2, pageSize, true);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, pageSize + 1, false);
             testRange(address2, pageSize + 1, false);
 
@@ -101,21 +123,21 @@ public class ArenaDebugger {
             } catch (ArenaException e) {}
 
             
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++) {
                 testRange(address + offset, 1, true);
                 testRange(address2 + offset, 1, false);
             }
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
             testRange(address2 - 1, 2, false);
             
-            // Range In->In checken
+            // Check range In->In block
             testRange(address, pageSize, true);
             testRange(address2, pageSize, false);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, pageSize + 1, false);
             testRange(address2, pageSize + 1, false);
             
@@ -124,21 +146,21 @@ public class ArenaDebugger {
                 states[3] = arena.toString();
             } catch (ArenaException e) {}
 
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++) {
                 testRange(address + offset, 1, false);
                 testRange(address2 + offset, 1, false);
             }
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
             testRange(address2 - 1, 2, false);
             
-            // Range In->In checken
+            // Check range In->In block
             testRange(address, pageSize, false);
             testRange(address2, pageSize, false);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, pageSize + 1, false);
             testRange(address2, pageSize + 1, false);
             
@@ -163,17 +185,17 @@ public class ArenaDebugger {
             address = arena.allocate();
             states[0] = arena.toString();
 
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++)
                 testRange(address + offset, 1, true);
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
             
-            // Range In->In checken
+            // Check range In->In block
             testRange(address, pageSize, true);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, pageSize + 1, false);
             
             try {
@@ -181,18 +203,18 @@ public class ArenaDebugger {
                 states[1] = arena.toString();
             } catch (ArenaException e) {}
 
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++) {
                 testRange(address + offset, 1, false);
             }
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
             
-            // Range In->In checken
+            // Check range In->In block
             testRange(address, pageSize, false);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, pageSize + 1, false);
 
             System.out.println("PASSED: Pagesize " + pageSize);

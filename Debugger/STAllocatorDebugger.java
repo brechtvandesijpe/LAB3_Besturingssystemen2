@@ -23,6 +23,16 @@ public class STAllocatorDebugger {
         this.debug = debug;
     }
 
+    /**
+     * @param startAddress
+     * @param range
+     * @param condition
+     * @throws TesterFailedException
+     * @return void
+     * 
+     * Test a condition for a range of addresses. If not met fail the debugger.
+     */
+
     public void testRange(Long startAddress, int range, boolean condition) throws TesterFailedException {
         if(allocator.isAccessible(startAddress, range) != condition) {
             printStates();
@@ -32,11 +42,23 @@ public class STAllocatorDebugger {
         }
     }
 
+    /**
+     * Print the trace of states during the test
+     */
+
     private void printStates() {
         for(String s : states) {
             if(s != null) logger.log(s,1);
         }
     }
+
+    /**
+     * @throws TesterFailedException
+     * @throws TesterSuccessException
+     * @return void
+     * 
+     * Excecute the test for the debugging
+     */
 
     public void test() throws TesterSuccessException, TesterFailedException {
         int[] sizes = {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,12288};
@@ -50,6 +72,8 @@ public class STAllocatorDebugger {
              * ===========================================================================
              * ==============================ALLOCATION TEST==============================
              * ===========================================================================
+             * 
+             * Test the allocation of an address of size size
              */
 
             address = allocator.allocate(size);
@@ -77,24 +101,26 @@ public class STAllocatorDebugger {
              * ===========================================================================
              * ============================REALLOCATION TEST 1============================
              * ===========================================================================
+             * 
+             * Test the reAllocation of an address when size doubles.
              */
             
             size *= 2;
             address = allocator.reAllocate(address, size);
             states[1] = allocator.toString();
-            
-            // Enkele adressen checken
+
+            // Check a range of addresses address for address
             for(int offset = 0; offset < size; offset++) {
                 testRange(address + offset, 1, true);
             }     
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
-                        
-            // Range In->In checken
+
+            // Check range In->In block
             testRange(address, size, true);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, size + 1, false);
 
             System.out.println("PASSED: Pagesize " + originalSize + " REALLOC+");
@@ -103,6 +129,8 @@ public class STAllocatorDebugger {
              * ===========================================================================
              * ============================REALLOCATION TEST 2============================
              * ===========================================================================
+             * 
+             * Test the reAllocation of an address when the size divides by two.
              */
 
             if(size != 2) {
@@ -110,15 +138,15 @@ public class STAllocatorDebugger {
                 address = allocator.reAllocate(address, size);
                 states[2] = allocator.toString();
                 
-                // Enkele adressen checken
+                // Check a range of addresses address for address
                 for(int offset = 0; offset < size; offset++) {
                     testRange(address + offset, 1, true);
                 }
 
-                // Range Onder->In checken
+                // Check range Under->In block
                 testRange(address - 1, 2, false);
-                            
-                // Range In->In checken
+
+                // Check range In->In block
                 testRange(address, size, true);
 
                 System.out.println("PASSED: Pagesize " + originalSize + " REALLOC-");
@@ -129,27 +157,37 @@ public class STAllocatorDebugger {
              * ===========================================================================
              * =================================FREE TEST=================================
              * ===========================================================================
+             * 
+             * Test the freeing of an address.
              */
 
             allocator.free(address);
             states[3] = allocator.toString();
 
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < size; offset++)
                 testRange(address + offset, 1, false);
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
-                        
-            // Range In->In checken
+
+            // Check range In->In block
             testRange(address, size, false);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, size + 1, false);
 
             System.out.println("PASSED: Pagesize " + originalSize + " FREE");
             
         }
+
+        /*
+         * ===========================================================================
+         * ================================STRESS TEST================================
+         * ===========================================================================
+         * 
+         * Test the allocation, reallocation and freeing of a lot of random sizes.
+         */
 
         Random random = new Random();
 
@@ -158,7 +196,6 @@ public class STAllocatorDebugger {
         Long[] addresses = new Long[amountOfTests];
         int[] sizesList = new int[amountOfTests];
 
-        
         for(int i = 0; i < amountOfTests; i++) {
             size = random.nextInt(1, 20000);
             states = new String[4];
@@ -167,6 +204,7 @@ public class STAllocatorDebugger {
             address = allocator.allocate(size);
             states[0] = allocator.toString();
 
+            // Check if the address is allocated
             testRange(address, size, true);
 
             addresses[i] = address;
@@ -183,6 +221,7 @@ public class STAllocatorDebugger {
             address = allocator.reAllocate(addr, size);
             states[1] = allocator.toString();
             
+            // Check if the address is still allocated
             testRange(address, size, true);
             
             addresses[i] = address;
@@ -201,6 +240,7 @@ public class STAllocatorDebugger {
             states[1] = allocator.toString();
 
             size = sizesList[i];
+            // Check if the address is freed
             testRange(addr, size, false);
         }
 

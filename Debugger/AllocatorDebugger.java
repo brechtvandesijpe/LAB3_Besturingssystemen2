@@ -23,6 +23,16 @@ public class AllocatorDebugger {
         this.debug = debug;
     }
 
+    /**
+     * @param startAddress
+     * @param range
+     * @param condition
+     * @throws TesterFailedException
+     * @return void
+     * 
+     * Test a condition for a range of addresses. If not met fail the debugger.
+     */
+
     public void testRange(Long startAddress, int range, boolean condition) throws TesterFailedException {
         if(allocator.isAccessible(startAddress, range) != condition) {
             printStates();
@@ -32,11 +42,23 @@ public class AllocatorDebugger {
         }
     }
 
+    /**
+     * Print the trace of states during the test
+     */
+
     private void printStates() {
         for(String s : states) {
             if(s != null) logger.log(s,1);
         }
     }
+
+    /**
+     * @throws TesterFailedException
+     * @throws TesterSuccessException
+     * @return void
+     * 
+     * Excecute the test for the debugging
+     */
 
     public void test() throws TesterFailedException, TesterSuccessException {
         int[] sizes = {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,12288};
@@ -51,25 +73,29 @@ public class AllocatorDebugger {
              * ===========================================================================
              * =======================ALLOCATION TEST (SAME THREAD)=======================
              * ===========================================================================
+             * 
+             * This test will allocate a random amount of memory, reallocate it to a
+             * smaller then before and bigger then before size and free it again. All in
+             * the same thread.
              */
 
             address = allocator.allocate(size);
             states[0] = allocator.toString();
 
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < size; offset++)
                 testRange(address + offset, 1, true);
 
             int range = (int) Math.ceil(size / 2);
             range = range == 0 ? 1 : range;
             
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
-                        
-            // Range In->In checken
+
+            // Check range In->In block
             testRange(address, size, true);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, size + 1, false);
 
             System.out.println("PASSED: Pagesize " + originalSize + " MALLOC (SAME THREAD)");
@@ -78,24 +104,28 @@ public class AllocatorDebugger {
              * ===========================================================================
              * =====================REALLOCATION TEST 1 (SAME THREAD)=====================
              * ===========================================================================
+             * 
+             * This test will allocate a random amount of memory, reallocate it to a
+             * smaller then before and bigger then before size and free it again. All in
+             * the same thread.
              */
             
             size *= 2;
             address = allocator.reAllocate(address, size);
             states[1] = allocator.toString();
-            
-            // Enkele adressen checken
+
+            // Check a range of addresses address for address
             for(int offset = 0; offset < size; offset++) {
                 testRange(address + offset, 1, true);
             }     
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
-                        
-            // Range In->In checken
+
+            // Check range In->In block
             testRange(address, size, true);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, size + 1, false);
 
             System.out.println("PASSED: Pagesize " + originalSize + " REALLOC+ (SAME THREAD)");
@@ -104,22 +134,26 @@ public class AllocatorDebugger {
              * ===========================================================================
              * =====================REALLOCATION TEST 2 (SAME THREAD)=====================
              * ===========================================================================
+             * 
+             * This test will allocate a random amount of memory, reallocate it to a
+             * smaller then before and bigger then before size and free it again. All in
+             * the same thread.
              */
 
             if(size != 2) {
                 size /= 4;
                 address = allocator.reAllocate(address, size);
                 states[2] = allocator.toString();
-                
-                // Enkele adressen checken
+
+                // Check a range of addresses address for address
                 for(int offset = 0; offset < size; offset++) {
                     testRange(address + offset, 1, true);
                 }
 
-                // Range Onder->In checken
+                // Check range Under->In block
                 testRange(address - 1, 2, false);
-                            
-                // Range In->In checken
+
+                // Check range In->In block
                 testRange(address, size, true);
             }
 
@@ -129,22 +163,26 @@ public class AllocatorDebugger {
              * ===========================================================================
              * ==========================FREE TEST (SAME THREAD)==========================
              * ===========================================================================
+             * 
+             * This test will allocate a random amount of memory, reallocate it to a
+             * smaller then before and bigger then before size and free it again. All in
+             * the same thread.
              */
 
             allocator.free(address);
             states[3] = allocator.toString();
 
-            // Enkele adressen checken
+                // Check a range of addresses address for address
             for(int offset = 0; offset < size; offset++)
                 testRange(address + offset, 1, false);
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
-                        
-            // Range In->In checken
+
+            // Check range In->In block
             testRange(address, size, false);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, size + 1, false);
 
             System.out.println("PASSED: Pagesize " + originalSize + " FREE (SAME THREAD)");
@@ -154,6 +192,10 @@ public class AllocatorDebugger {
          * ===========================================================================
          * =====================RANDOM STRESS TESTS (SAME THREAD)=====================
          * ===========================================================================
+         * 
+         * This test will allocate a random amount of memory, reallocate it to a
+         * smaller then before and bigger then before size and free it again. All in
+         * the same thread.
          */
 
         Random random = new Random();
@@ -172,6 +214,7 @@ public class AllocatorDebugger {
             address = allocator.allocate(size);
             states[0] = allocator.toString();
 
+            // Check if address is allocated
             testRange(address, size, true);
 
             addresses[i] = address;
@@ -188,6 +231,7 @@ public class AllocatorDebugger {
             address = allocator.reAllocate(addr, size);
             states[1] = allocator.toString();
             
+            // Make sure aaddress is still allocated
             testRange(address, size, true);
             
             addresses[i] = address;
@@ -206,6 +250,8 @@ public class AllocatorDebugger {
             states[1] = allocator.toString();
 
             size = sizesList[i];
+
+            // Make sure qddress was freed
             testRange(addr, size, false);
         }
 
@@ -220,6 +266,10 @@ public class AllocatorDebugger {
              * ===========================================================================
              * ====================ALLOCATION TEST (DIFFERENT THREADS)====================
              * ===========================================================================
+             * 
+             * This test will stress test the allocator by allocating in one tthread, re-
+             * allocating in another, reallocating in a third thread and freeing in a
+             * fourth. The threads are simulated by changing the thread name.
              */
 
             Thread.currentThread().setName("1");
@@ -227,20 +277,20 @@ public class AllocatorDebugger {
             address = allocator.allocate(size);
             states[0] = allocator.toString();
 
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < size; offset++)
                 testRange(address + offset, 1, true);
 
             int range = (int) Math.ceil(size / 2);
             range = range == 0 ? 1 : range;
             
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
-                        
-            // Range In->In checken
+            
+            // Check range In->In block
             testRange(address, size, true);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, size + 1, false);
 
             System.out.println("PASSED: Pagesize " + originalSize + " MALLOC (SAME THREAD)");
@@ -249,6 +299,10 @@ public class AllocatorDebugger {
              * ===========================================================================
              * ==================REALLOCATION TEST 1 (DIFFERENT THREADS)==================
              * ===========================================================================
+             * 
+             * This test will stress test the allocator by allocating in one thread, re-
+             * allocating in another, reallocating in a third thread and freeing in a
+             * fourth. The threads are simulated by changing the thread name.
              */
 
             Thread.currentThread().setName("2");
@@ -257,18 +311,18 @@ public class AllocatorDebugger {
             address = allocator.reAllocate(address, size);
             states[1] = allocator.toString();
             
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < size; offset++) {
                 testRange(address + offset, 1, true);
             }     
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
-                        
-            // Range In->In checken
+            
+            // Check range In->In block
             testRange(address, size, true);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, size + 1, false);
 
             System.out.println("PASSED: Pagesize " + originalSize + " REALLOC+ (SAME THREAD)");
@@ -277,6 +331,10 @@ public class AllocatorDebugger {
              * ===========================================================================
              * ===================REALLOCATION TEST 2 (DIFFERENT THREADS)=================
              * ===========================================================================
+             * 
+             * This test will stress test the allocator by allocating in one tthread, re-
+             * allocating in another, reallocating in a third thread and freeing in a
+             * fourth. The threads are simulated by changing the thread name.
              */
 
             Thread.currentThread().setName("3");
@@ -286,15 +344,15 @@ public class AllocatorDebugger {
                 address = allocator.reAllocate(address, size);
                 states[2] = allocator.toString();
                 
-                // Enkele adressen checken
+                // Check a range of addresses address for address
                 for(int offset = 0; offset < size; offset++) {
                     testRange(address + offset, 1, true);
                 }
 
-                // Range Onder->In checken
+                // Check range Under->In block
                 testRange(address - 1, 2, false);
-                            
-                // Range In->In checken
+                
+                // Check range In->In block
                 testRange(address, size, true);
             }
 
@@ -304,6 +362,10 @@ public class AllocatorDebugger {
              * ===========================================================================
              * ==========================FREE TEST (DIFFERENT THREADS)====================
              * ===========================================================================
+             * 
+             * This test will stress test the allocator by allocating in one tthread, re-
+             * allocating in another, reallocating in a third thread and freeing in a
+             * fourth. The threads are simulated by changing the thread name.
              */
 
             Thread.currentThread().setName("4");
@@ -311,17 +373,17 @@ public class AllocatorDebugger {
             allocator.free(address);
             states[3] = allocator.toString();
 
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < size; offset++)
                 testRange(address + offset, 1, false);
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
                         
-            // Range In->In checken
+            // Check range In->In block
             testRange(address, size, false);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, size + 1, false);
 
             System.out.println("PASSED: Pagesize " + originalSize + " FREE (SAME THREAD)");
@@ -331,6 +393,10 @@ public class AllocatorDebugger {
          * ===========================================================================
          * ===================RANDOM STRESS TESTS (DIFFERENT THREADS)=================
          * ===========================================================================
+         * 
+         * This test will stress test the allocator by allocating in one tthread, re-
+         * allocating in another, reallocating in a third thread and freeing in a
+         * fourth. The threads are simulated by changing the thread name.
          */
 
         Thread.currentThread().setName("1");
@@ -347,6 +413,7 @@ public class AllocatorDebugger {
             address = allocator.allocate(size);
             states[0] = allocator.toString();
 
+            // Check if allocated
             testRange(address, size, true);
 
             addresses[i] = address;
@@ -365,6 +432,7 @@ public class AllocatorDebugger {
             address = allocator.reAllocate(addr, size);
             states[1] = allocator.toString();
             
+            // Check if still allocated
             testRange(address, size, true);
             
             addresses[i] = address;
@@ -385,6 +453,7 @@ public class AllocatorDebugger {
             states[1] = allocator.toString();
 
             size = sizesList[i];
+            // make sure address is freed
             testRange(addr, size, false);
         }
 

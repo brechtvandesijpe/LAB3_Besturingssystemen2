@@ -30,6 +30,16 @@ public class BlockDebugger {
         this.debug = debug;
     }
 
+    /**
+     * @param startAddress
+     * @param range
+     * @param condition
+     * @throws TesterFailedException
+     * @return void
+     * 
+     * Test a condition for a range of addresses. If not met fail the debugger.
+     */
+
     public void testRange(Long startAddress, int range, boolean condition) throws TesterFailedException {
         if(block.isAccessible(startAddress, range) != condition) {
             printStates();
@@ -38,11 +48,24 @@ public class BlockDebugger {
         }
     }
 
+    /**
+     * Print the trace of states during the test
+     */
+
     private void printStates() {
         for(String s : states) {
             if(s != null) logger.log(s,1);
         }
     }
+
+    /**
+     * @throws BlockException
+     * @throws TesterFailedException
+     * @throws TesterSuccessException
+     * @return void
+     * 
+     * Excecute the test for the debugging
+     */
 
     public void test() throws BlockException, TesterFailedException, TesterSuccessException {
 
@@ -81,21 +104,21 @@ public class BlockDebugger {
             Long address2 = block.allocate();
             states[1] = block.toString();
 
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++) {
                 testRange(address + offset, 1, true);
                 testRange(address2 + offset, 1, true);
             }
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
             testRange(address2 - 1, 2, false);
             
-            // Range In->In checken
+            // Check range In->In block
             testRange(address, pageSize, true);
             testRange(address2, pageSize, true);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, pageSize + 1, false);
             testRange(address2, pageSize + 1, false);
 
@@ -105,21 +128,21 @@ public class BlockDebugger {
             } catch (BlockException e) {}
 
             
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++) {
                 testRange(address + offset, 1, true);
                 testRange(address2 + offset, 1, false);
             }
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
             testRange(address2 - 1, 2, false);
             
-            // Range In->In checken
+            // Check range In->In block
             testRange(address, pageSize, true);
             testRange(address2, pageSize, false);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, pageSize + 1, false);
             testRange(address2, pageSize + 1, false);
             
@@ -128,21 +151,21 @@ public class BlockDebugger {
                 states[3] = block.toString();
             } catch (BlockException e) {}
 
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++) {
                 testRange(address + offset, 1, false);
                 testRange(address2 + offset, 1, false);
             }
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
             testRange(address2 - 1, 2, false);
             
-            // Range In->In checken
+            // Check range In->In block
             testRange(address, pageSize, false);
             testRange(address2, pageSize, false);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, pageSize + 1, false);
             testRange(address2, pageSize + 1, false);
             
@@ -167,17 +190,17 @@ public class BlockDebugger {
             address = block.allocate();
             states[0] = block.toString();
 
-            // Enkele adressen checken
+            // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++)
                 testRange(address + offset, 1, true);
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
             
-            // Range In->In checken
+            // Check range In->In block
             testRange(address, pageSize, true);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, pageSize + 1, false);
             
             try {
@@ -185,18 +208,17 @@ public class BlockDebugger {
                 states[1] = block.toString();
             } catch (BlockException e) {}
 
-            // Enkele adressen checken
-            for(int offset = 0; offset < pageSize; offset++) {
-                testRange(address + offset, 1, false);
-            }
+            // Check a range of addresses address for address
+            for(int offset = 0; offset < pageSize; offset++)
+                testRange(address + offset, 1, true);
 
-            // Range Onder->In checken
+            // Check range Under->In block
             testRange(address - 1, 2, false);
             
-            // Range In->In checken
+            // Check range In->In block
             testRange(address, pageSize, false);
 
-            // Range In->Boven checken
+            // Check range In->Above block
             testRange(address, pageSize + 1, false);
 
             System.out.println("PASSED: Pagesize " + pageSize);
@@ -214,20 +236,21 @@ public class BlockDebugger {
                 address = block.allocate();
                 addresses.add(address);
 
-                // Enkele adressen checken
+                // Check a range of addresses address for address
                 for(int offset = 0; offset < pageSize; offset++)
                     testRange(address + offset, 1, true);
 
-                // Range Onder->In checken
+                // Check range Under->In block
                 testRange(address - 1, 2, false);
                 
-                // Range In->In checken
+                // Check range In->In block
                 testRange(address, pageSize, true);
 
-                // Range In->Boven checken
+                // Check range In->Above block
                 testRange(address, pageSize + 1, false);
             }
         } catch(BlockException e) {
+            // When the Block is full, it should throw an exception to guarantee the working of the allocator
             fullFLag = true;
         }
 
@@ -235,20 +258,21 @@ public class BlockDebugger {
             for(Long a : addresses) {
                 block.free(a);
 
-                // Enkele adressen checken
+                // Check a range of addresses address for address
                 for(int offset = 0; offset < pageSize; offset++)
                     testRange(a + offset, 1, false);
 
-                // Range Onder->In checken
+                // Check range Under->In block
                 testRange(a - 1, 2, false);
                 
-                // Range In->In checken
+                // Check range In->In block
                 testRange(a, pageSize, false);
 
-                // Range In->Boven checken
+                // Check range In->Above block
                 testRange(a, pageSize + 1, false);
             }
         } catch(BlockException e) {
+            // BLock MUST throw up an exception when empty to guarantee the working of the allocator
             emptyFlag = true;
 
             if(fullFLag)
