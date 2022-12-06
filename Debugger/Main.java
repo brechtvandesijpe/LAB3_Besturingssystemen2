@@ -59,6 +59,5 @@ public class Main {
             System.out.println("                                                 ALL ALLOCATOR TESTS PASSED");
             System.out.println("============================================================================================================================");
         }
-        Logger.getInstance().log("here");
     }
 }

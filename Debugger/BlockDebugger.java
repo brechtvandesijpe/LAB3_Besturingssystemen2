@@ -54,7 +54,7 @@ public class BlockDebugger {
 
     private void printStates() {
         for(String s : states) {
-            if(s != null) logger.log(s,1);
+            if(s != null) logger.log(s,2);
         }
     }
 
@@ -210,7 +210,7 @@ public class BlockDebugger {
 
             // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++)
-                testRange(address + offset, 1, true);
+                testRange(address + offset, 1, false);
 
             // Check range Under->In block
             testRange(address - 1, 2, false);

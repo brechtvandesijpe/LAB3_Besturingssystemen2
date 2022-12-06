@@ -18,7 +18,7 @@ De Allocator package bevat volgende onderdelen:
 De debugger package bevat volgende onderdelen:
 - Aparte debuggerklassen voor de klassen Block, Arena, STAllocator en Allocator
 - Een Main klasse die alle debuggers oproept en voor de output zorgt
-- Een logger die berichten naar de console logt met een timestamp - threadId van de uitvoerende thread en een stacktrace naar waar de logmethode werd opgeroepen, door extra diepte mee te geven in de logmethode kan de stacktrace meer of minder ver weergegeven worden
+- Een logger die berichten naar de console logt met een timestamp en threadId van de uitvoerende thread en een stacktrace naar waar de logmethode werd opgeroepen, door extra diepte mee te geven in de logmethode kan de stacktrace meer of minder ver weergegeven worden
 - Een klasse StackTracer om de stack weer te geven in de logger
 - Workerklassen om eenzelfde Block, Arena of Allocator tegelijk te gebruiken om zo de synchronisatie te testen (niet standaard in Main verwerkt)
 - TesterFailed- en TesterSuccessException klassen dienen om de exception-handling te voorzien binnen de debugger
@@ -33,7 +33,7 @@ De debugger test onze verschillende onderdelen op specifieke manieren:
     - Een test waarbij we kijken dat een isAccessible op een range die begint op een adres binnen de pagina en eindigt buiten de pagina zeker false teruggeeft. (2)
     - Een test waarbij we kijken dat een isAccessible op een range die begint op een adres binnen de pagina en eindigt binnen de pagina zeker true teruggeeft. (3)
     - Een test waarbij we kijken dat een isAcessible op elk adres binnen de pagina zeker een true teruggeeft. (4)
-    
+
 <img title="a title" alt="Alt text" src="/memory.png">
 
 ## BankingSimulation
