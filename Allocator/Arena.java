@@ -1,17 +1,21 @@
 package Allocator;
 
-import java.util.LinkedList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import Debugger.*;
 
 public class Arena {
-    private LinkedList<Block> memoryBlocks;             // list of blocks in the arena
+    // list of blocks
+    private ConcurrentLinkedQueue<Block> memoryBlocks;
 
-    private BackingStore backingStore;                  // backingstore for OS calls map and unmap
+    private BackingStore backingStore;
 
-    private int blockSize;                              // size of the blocks in de arena
-    private int pageSize;                               // size of the pages in the blocks of the arena
+    // size of the blocks in de arena
+    private int blockSize;
 
-    private Logger logger;                              // logger for debugging
+    // size of the pages in the blocks of the arena
+    private int pageSize;
+
+    private Logger logger;
 
     /**
      * @param blockSize
@@ -23,7 +27,7 @@ public class Arena {
         this.blockSize = blockSize;
         this.pageSize = blockSize;
 
-        memoryBlocks = new LinkedList<>();
+        memoryBlocks = new ConcurrentLinkedQueue<>();
         backingStore = BackingStore.getInstance();
         logger = Logger.getInstance();
     }
@@ -39,7 +43,7 @@ public class Arena {
         this.blockSize = blockSize;
         this.pageSize = pageSize;
 
-        memoryBlocks = new LinkedList<>();
+        memoryBlocks = new ConcurrentLinkedQueue<>();
         backingStore = BackingStore.getInstance();
         logger = Logger.getInstance();
     }
@@ -72,18 +76,14 @@ public class Arena {
 
     public Long allocate() {
         try {
-            // Iterate over all the blocks in the arena and check if there are free pages within the blocks, if so allocate
             for(Block block : memoryBlocks){
                 if(block.hasFreePages())
                     return block.allocate();
             }
 
-            // If there are no free pages in te arena, map and create a new block and allocate a page from it
-            Block b = new Block(backingStore.mmap(blockSize), pageSize, blockSize);
-            memoryBlocks.add(b);
-            return b.allocate();
+            memoryBlocks.add(new Block(backingStore.mmap(blockSize), pageSize, blockSize));
+            return allocate();
         } catch (BlockException e) {
-            // If thrown, an error has occured when creating the block
             logger.log(e.getMessage());
             return null;
         }
@@ -97,17 +97,14 @@ public class Arena {
      */
 
     public void free(Long address) throws AllocatorException, ArenaException {
-        // Iterate over all the blocks and check if the address was allocated in the block, if so free the address
         for(Block block : memoryBlocks){
             if(block.isAccessible(address)) {
                 try {
                     block.free(address);
                 } catch (BlockException e) {
-                    // If the block is empt after freeing: remove and unmap the block
                     memoryBlocks.remove(block);
                     backingStore.munmap(block.getStartAddress(), block.getBlockSize());
-                    
-                    // Check if the arena is empty, if so let the allocator know
+
                     if(memoryBlocks.isEmpty())
                         throw new ArenaException("No blocks in the arena");
                 }
@@ -138,29 +135,11 @@ public class Arena {
      */
 
     public boolean isAccessible(Long address, int range) {
-        // Iterate over all the blocks and check if the address is accessible in the block, if so return true
         for(Block block : memoryBlocks){
             if(block.isAccessible(address, range))
                 return true;
         }
 
         return false;
-    }
-
-    /**
-     * @return String
-     * 
-     * Method to visualize the arena.
-     */
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-
-        for(int i = 0; i < memoryBlocks.size(); i++) {
-            sb.append(memoryBlocks.get(i).toString());
-        }
-
-        return sb.toString();
     }
 }

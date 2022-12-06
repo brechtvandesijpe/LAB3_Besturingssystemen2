@@ -1,22 +1,21 @@
 package Allocator;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import Debugger.Logger;
 
 public class MTAllocator implements Allocator {
-    public HashMap<String, STAllocator> allocators;;
+    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    
+    private ConcurrentHashMap<String, STAllocator> allocators;
 
     private Logger logger;  // Logger for debugging
 
-    private ReadWriteLock lock; // Lock to protect the map of allocators
-
     public MTAllocator() {
-        allocators = new HashMap<>();
+        allocators = new ConcurrentHashMap<>();
         logger = Logger.getInstance();
-        lock = new ReentrantReadWriteLock();
     }
 
     /**
@@ -28,21 +27,31 @@ public class MTAllocator implements Allocator {
      */
 
     public STAllocator getAllocator(boolean createIfNotExists) {
-        // Get the name of the current thread, just for testing purpose, normaly the thread id would be used
         String threadName = Thread.currentThread().getName();
 
-        lock.readLock().lock();
-        STAllocator allocator = allocators.get(threadName);
-        lock.readLock().unlock();
+        STAllocator allocator;
+
+        // Acquire a read lock before accessing the allocators map
+        rwLock.readLock().lock();
+        try {
+            allocator = allocators.get(threadName);
+        } finally {
+            // Release the read lock
+            rwLock.readLock().unlock();
+        }
 
         if(allocator == null) {
-            if(createIfNotExists) { // If the allocator does not exist yet, create it and add it if allowed
+            if(createIfNotExists) {
                 allocator = new STAllocator();
-    
-                lock.writeLock().lock();
-                allocators.put(threadName, allocator);
-                lock.writeLock().unlock();
-            } else throw new AllocatorException("Allocator does not exist"); // If the allocator doesn't exist throw an exception
+                // Acquire a write lock before modifying the allocators map
+                rwLock.writeLock().lock();
+                try {
+                    allocators.put(threadName, allocator);
+                } finally {
+                    // Release the write lock
+                    rwLock.writeLock().unlock();
+                }
+            } else throw new AllocatorException("Allocator does not exist");
         }
 
         return allocator;
@@ -58,15 +67,11 @@ public class MTAllocator implements Allocator {
     @Override
     public Long allocate(int size) {
         Long address;
-        STAllocator allocator = getAllocator(true); // Get the allocator of the current thread, if it doesn't exist create it
+        STAllocator allocator = getAllocator(true);
 
         if(allocator == null)
-            throw new NullPointerException();   // If still something went wrong and the allocator is null, throw an exception
-        
-        synchronized(allocator) {
-            address = allocator.allocate(size); // Allocate the given size in the allocator while synchronising on the allocator
-        }
-
+            throw new NullPointerException();
+        address = allocator.allocate(size);
         return address;
     }
 
@@ -79,35 +84,29 @@ public class MTAllocator implements Allocator {
      */
 
     @Override
-    public void free(Long address) throws AllocatorException {
+    public void free(Long address) {
+        boolean found = false;
+
+        // Acquire a read lock on the allocators map
+        rwLock.readLock().lock();
         try {
-            // Get the allocator of the thread that allocated the address
-            STAllocator allocator = getAllocator(false);
-
-            synchronized(allocator) {
-                allocator.free(address);    // Free the address while synchronising on the allocator
-            }
-        } catch(AllocatorException e) {
-            boolean found = false;
-            
-            lock.readLock().lock();
-            
-            // If not found in the own allocator search in all other allocators and try to free the address
-            for(STAllocator allocator : allocators.values()) {
-                try {
+            // Iterate over the allocators map and call the free method
+            // on the appropriate allocator
+            for(STAllocator a : allocators.values()) {
+                if(a.isAccessible(address)) {
+                    a.free(address);
                     found = true;
-                    synchronized(allocator) {
-                        allocator.free(address);
-                    }
-                } catch(AllocatorException e2) {
-                    found = false;
-                }
-
-                if(found)
                     break;
+                }
             }
+        } finally {
+            // Release the read lock on the allocators map
+            rwLock.readLock().unlock();
+        }
 
-            lock.readLock().unlock();
+        // If the address was not found in any allocator, log a warning
+        if(!found) {
+            logger.log("Address " + address + " not found in any allocator");
         }
     }
 
@@ -121,8 +120,29 @@ public class MTAllocator implements Allocator {
 
     @Override
     public Long reAllocate(Long oldAddress, int newSize) {
-        free(oldAddress);
-        return allocate(newSize);
+        // Acquire a write lock on the allocators map
+        rwLock.writeLock().lock();
+        try {
+            // Iterate over the allocators map and call the free method
+            // on the appropriate allocator
+            for(STAllocator a : allocators.values()) {
+                if(a.isAccessible(oldAddress)) {
+                    a.free(oldAddress);
+                    break;
+                }
+            }
+
+            // Get the allocator of the current thread
+            STAllocator allocator = getAllocator(true);
+            if(allocator == null)
+                throw new NullPointerException();
+
+            // Allocate the new memory while synchronising on the allocator
+            return allocator.allocate(newSize);
+        } finally {
+            // Release the write lock on the allocators map
+            rwLock.writeLock().unlock();
+        }
     }
 
     /**
@@ -146,21 +166,21 @@ public class MTAllocator implements Allocator {
      */
 
     @Override
-    public boolean isAccessible(Long address, int range) {
-        lock.readLock().lock();
-
-        // Iterate over all alocators to check if the address is accessible, if so unlock the readlock and return true
-        for(STAllocator a : allocators.values()) {
-            synchronized(a) {
-                if(a.isAccessible(address, range)) {
-                    lock.readLock().unlock();
-                    return true;
+    public boolean isAccessible(Long address, int size) {
+        // Acquire a read lock on the allocators map before iterating over it
+        rwLock.readLock().lock();
+        try {
+            // Iterate over the allocators map and call the isAccessible method
+            // on the appropriate allocator
+            for(STAllocator a : allocators.values()) {
+                if(a.isAccessible(address)) {
+                    return a.isAccessible(address, size);
                 }
             }
+            return false;
+        } finally {
+            // Release the read lock on the allocators map
+            rwLock.readLock().unlock();
         }
-
-        // Address not found within the allocator so unlock the readlock and return false
-        lock.readLock().unlock();
-        return false;
     }
 }

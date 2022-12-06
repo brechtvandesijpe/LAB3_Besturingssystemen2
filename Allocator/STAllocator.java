@@ -1,21 +1,24 @@
 package Allocator;
 
+
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.lang.Math;
+import java.util.concurrent.ConcurrentHashMap;
 
 import Debugger.Logger;
 
 public class STAllocator implements Allocator {
-    private NavigableMap<Integer, Arena> arenas;        // map of arenas with their size as key
-    private Logger logger;                              // For logging of events while debugging
+    private ConcurrentHashMap<Integer, Arena> arenas;
+
+    private Logger logger;
 
     /**
      * Constructor for the STAllocator.
      */
 
     public STAllocator() {
-        arenas = new TreeMap<>();
+        arenas = new ConcurrentHashMap<>();
         this.logger = Logger.getInstance();
     }
 
@@ -49,15 +52,12 @@ public class STAllocator implements Allocator {
      * Allocates a size of memory
      */
 
-    public Long allocate(int size) throws AllocatorException {
+    public Long  allocate(int size) throws AllocatorException {
         // If the size is illegal throw an exception
         if(size <= 0)
             throw new AllocatorException("Size can't be negative or zero");
         
-        // Calculate the pageSize in case the block is smaller than 4096 bytes (next power of 2)
         int roundedSizeBaseTwo = baseTwo(size);
-        
-        // Calculate the pageSize in case the block is bigger than 4096 bytes (next multiple of 4096)
         int roundedSizeBaseBlockSize = baseBlockSize(size);
 
         // Get the arena with the given size
@@ -65,17 +65,17 @@ public class STAllocator implements Allocator {
 
         if(arena == null)
             arena = arenas.get(roundedSizeBaseBlockSize);
-
+        
         // If the arena doesn't exist, create it    
         if(arena == null) {
             if(size > Block.UNIT_BLOCK_SIZE) {
-                // In case we give full blocks the pageSize equals the whole block
                 arena = new Arena(roundedSizeBaseBlockSize);
                 arenas.put(roundedSizeBaseBlockSize, arena);
             } else {
-                arena = new Arena(Block.UNIT_BLOCK_SIZE, roundedSizeBaseTwo);
+                arena = new Arena(4 * Block.UNIT_BLOCK_SIZE, roundedSizeBaseTwo);
                 arenas.put(roundedSizeBaseTwo, arena);
             }
+
         }
 
         // Allocate a new block from the arena
@@ -95,7 +95,6 @@ public class STAllocator implements Allocator {
         Arena arena = null;
 
         try {
-            // Iterate over all the arena's and when the address is found, free it
             for(Arena a : arenas.values()) {
                 if(a.isAccessible(address, 1)) {
                     arena = a;
@@ -103,7 +102,7 @@ public class STAllocator implements Allocator {
                     return;
                 }
             }
-        } catch(ArenaException e) { // In case the arena throws an exception, the arena is ampty and thus shoudl be cleaned up
+        } catch(ArenaException e) {
             arenas.remove(arena.getPageSize());
             return;
         }
@@ -172,25 +171,13 @@ public class STAllocator implements Allocator {
      * Checks if the address with given range is allocated
      */
 
-    public boolean isAccessible(Long address, int range) {
-        // Iterate over all the arenas and check if the address is accessible, if so return true
+    public boolean isAccessible(Long address, int size) {
         for(Arena arena : arenas.values()) {
-            if(arena.isAccessible(address, range)) {
+            if(arena.isAccessible(address, size)) {
                 return true;
             }
         }
         
         return false;
-    }
-
-    /**
-     * @return String
-     * 
-     * Visualizes the current state of allocator
-     */
-
-    @Override
-    public String toString() {
-        return arenas + "";
     }
 }

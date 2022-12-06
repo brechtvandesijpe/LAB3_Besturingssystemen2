@@ -2,19 +2,19 @@ package Allocator;
 
 import java.util.BitSet;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 
 import Debugger.*;
 
 public class Block {
-    public static final int UNIT_BLOCK_SIZE = 4096;     // minimal size of blocks that the backingstore returns
+    public static final int UNIT_BLOCK_SIZE = 4096;
 
-    private final Long startAddress;                    // start address of the block
-    private final int pageSize;                         // size of the pages in the block in bytes
-    private final int blockSize;                        // size of the block in bytes
-    
-    private BitSet allocatedPages;                      // bitset to keep track of the allocated pages
+    private final Long startAddress;        // start address of the block
+    private final int pageSize;             // size of the pages in the block in bytes
+    private final int blockSize;            // size of the block in bytes
 
-    private Logger logger;                              // logger for debugging
+    private AtomicIntegerArray allocatedPages;
+    private Logger logger;
 
     /**
      * @param startAddress
@@ -31,8 +31,8 @@ public class Block {
         this.pageSize = pageSize;
         this.blockSize = blockSize;
 
-        
-        allocatedPages = new BitSet();
+
+        this.allocatedPages = new AtomicIntegerArray(blockSize / pageSize);
         logger = Logger.getInstance();
     }
 
@@ -68,17 +68,15 @@ public class Block {
             int pageIndex = i / pageSize;
             
             // Check if the page is free
-            if(!allocatedPages.get(pageIndex)){
+            if(allocatedPages.get(pageIndex) == 0){
                 // Set the page as allocated
-                allocatedPages.set(pageIndex);
-
+                allocatedPages.set(pageIndex,1);
                 // Return the address of the page
                 return startAddress + i;
             }
         }
 
         throw new BlockException("No free pages in block");
-
     }
 
     /**
@@ -100,10 +98,9 @@ public class Block {
         int pageIndex = (int) Math.floor(address / pageSize);
 
         // Free the page
-        allocatedPages.set(pageIndex, false);
-        
+        allocatedPages.set(pageIndex, 0);
         // If the block is empty, throw an exception
-        if(allocatedPages.isEmpty())
+        if(allocatedPages.length()==0)
             throw new BlockException("Block is empty");
     }
 
@@ -116,7 +113,7 @@ public class Block {
 
     public boolean hasFreePages(){
         for(int i = 0; i < (blockSize / pageSize); i++) {
-            if(!allocatedPages.get(i))
+            if(allocatedPages.get(i) == 0)
                 return true;
         }
 
@@ -143,43 +140,20 @@ public class Block {
      */
 
     public boolean isAccessible(Long address, int range) {
-        // Calculate the relative address within the block
         address -= startAddress;
 
-        // Safety check
         if(range == 0)
             throw new IllegalArgumentException("Range is zero");
 
-        // Check if all addresses in the range will be within the bounds of the block
         if(address < 0 || address > blockSize || (address + range) < 0 || (address + range) > blockSize)
             return false;
 
-        // Calculate the indexes of the page of the address itself and the last address of the range
         int pageIndexAddress = (int) Math.floor(address / pageSize);
-        int pageIndexRange = (int) Math.floor((address + range - 1) / pageSize); // Since the range is exclusive, we need to subtract 1
+        int pageIndexRange = (int) Math.floor((address + range - 1) / pageSize);
 
-        // If the page indexes are not the same, the range will never be in the same page
         if(pageIndexAddress != pageIndexRange)
             return false;
-        
-        // All the addresses are definitely in the same page, so we can check if the page is allocated and that will be the result
-        return allocatedPages.get(pageIndexAddress);
-    }
 
-    /**
-     * @return String
-     * Method to visualise the block's insides.
-     */
-    
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-
-        for(int i = 0; i < (blockSize / pageSize); i++)
-            sb.append(allocatedPages.get(i) ? "1" : "0");
-
-        sb.append("]");
-        return sb.toString();
+        return allocatedPages.get(pageIndexAddress) == 1;
     }
 }
