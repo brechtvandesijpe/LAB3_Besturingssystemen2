@@ -1,17 +1,13 @@
 package Allocator;
 
-
-import java.util.NavigableMap;
-import java.util.TreeMap;
 import java.lang.Math;
 import java.util.concurrent.ConcurrentHashMap;
 
 import Debugger.Logger;
 
 public class STAllocator implements Allocator {
-    private ConcurrentHashMap<Integer, Arena> arenas;
-
-    private Logger logger;
+    private ConcurrentHashMap<Integer, Arena> arenas;   // ConcurrentHashMap of arenas
+    private Logger logger;                              // Logger to use
 
     /**
      * Constructor for the STAllocator.
@@ -23,8 +19,8 @@ public class STAllocator implements Allocator {
     }
 
     /**
-     * @param number
-     * @return int
+     * @param number is the number to round
+     * @return the rounded number
      * 
      * Method to get the next power of two following on a number.
      */
@@ -34,8 +30,8 @@ public class STAllocator implements Allocator {
     }
 
     /**
-     * @param number
-     * @return int
+     * @param number is the number to round
+     * @return the rounded number
      * 
      * Method to get the next multiple of the minimal blocksize following on a number.
      */
@@ -45,14 +41,14 @@ public class STAllocator implements Allocator {
     }
 
     /**
-     * @param size
-     * @throws AllocatorException
-     * @return Long
+     * @param size is the size to allocate
+     * @throws AllocatorException when the size is illegal
+     * @return the address of the allocation
      * 
      * Allocates a size of memory
      */
 
-    public Long  allocate(int size) throws AllocatorException {
+    public Long allocate(int size) throws AllocatorException {
         // If the size is illegal throw an exception
         if(size <= 0)
             throw new AllocatorException("Size can't be negative or zero");
@@ -84,9 +80,9 @@ public class STAllocator implements Allocator {
     }
 
     /**
-     * @param address
-     * @exception AllocatorException
-     * @return void
+     * @param address is the address that has to be freed
+     * @throws AllocatorException when the address is not allocated
+     * @return nothing
      * 
      * Frees the arena where the address is present
      */
@@ -94,27 +90,24 @@ public class STAllocator implements Allocator {
     public void free(Long address) throws AllocatorException {
         Arena arena = null;
 
-        try {
-            for(Arena a : arenas.values()) {
-                if(a.isAccessible(address, 1)) {
-                    arena = a;
+        for(Arena a : arenas.values()) {
+            if(a.isAccessible(address, 1)) {
+                arena = a;
+                try {
                     arena.free(address);
-                    return;
-                }
+                } catch (ArenaException e) {}
+                return;
             }
-        } catch(ArenaException e) {
-            arenas.remove(arena.getPageSize());
-            return;
         }
 
         throw new AllocatorException("Address is not allocated");
     }
 
     /**
-     * @param oldAddress
-     * @param newSize
-     * @throws AllocatorException
-     * @return Long
+     * @param oldAddress is the old address of the allocation
+     * @param newSize is the new size of the allocation
+     * @throws AllocatorException when the size is illegal or the address is not allocated
+     * @return the address of the new allocation
      * 
      * Reallocates an old allocation to a new size
      */
@@ -153,8 +146,8 @@ public class STAllocator implements Allocator {
     }
 
     /**
-     * @param address
-     * @return boolean
+     * @param address is the address to check
+     * @return if the address is allocated
      * 
      * Checks if the address is allocated
      */
@@ -164,16 +157,16 @@ public class STAllocator implements Allocator {
     }
 
     /**
-     * @param address
-     * @param range
-     * @return boolean
+     * @param address is the address to check
+     * @param range is the range to check
+     * @return if the address with given range is allocated
      * 
      * Checks if the address with given range is allocated
      */
 
-    public boolean isAccessible(Long address, int size) {
+    public boolean isAccessible(Long address, int range) {
         for(Arena arena : arenas.values()) {
-            if(arena.isAccessible(address, size)) {
+            if(arena.isAccessible(address, range)) {
                 return true;
             }
         }

@@ -4,41 +4,34 @@ import Allocator.STAllocator;
 import java.util.Random;
 
 public class STAllocatorDebugger {
-    private STAllocator allocator;
-
-    private Long address;
-
-    private Logger logger;
-
-    private boolean debug;
-
-    private int size;
-
-    private String[] states;
+    private STAllocator allocator;          // The allocator to test
+    private Long address;                   // The address of the allocation
+    private Logger logger;                  // The logger to use
+    private int size;                       // The size of the allocation
+    private String[] states;                // Buffer to store the states of the allocator before a test fails
     
-    public STAllocatorDebugger(boolean debug) {
+    public STAllocatorDebugger() {
         allocator = new STAllocator();
         address = null;
         logger = Logger.getInstance();
-        this.debug = debug;
     }
 
     /**
-     * @param startAddress
-     * @param range
-     * @param condition
-     * @throws TesterFailedException
+     * @param startAddress is the startaddress af the range to test
+     * @param range is the range of addresses to test
+     * @param condition is the condition that is expected
+     * @throws DebuggerFailedException when the condition is not met
      * @return void
      * 
      * Test a condition for a range of addresses. If not met fail the debugger.
      */
 
-    public void testRange(Long startAddress, int range, boolean condition) throws TesterFailedException {
+    public void testRange(Long startAddress, int range, boolean condition) throws DebuggerFailedException {
         if(allocator.isAccessible(startAddress, range) != condition) {
             printStates();
             logger.log("Expected " + condition + " for address " + startAddress
                             + (range <= 1 ? "" : " and range " + range + " with size " + size), 1);
-            throw new TesterFailedException();
+            throw new DebuggerFailedException();
         }
     }
 
@@ -53,15 +46,15 @@ public class STAllocatorDebugger {
     }
 
     /**
-     * @throws TesterFailedException
-     * @throws TesterSuccessException
+     * @throws DebuggerFailedException when a test fails
+     * @throws DebuggerSuccessException when all tests are passed
      * @return void
      * 
      * Excecute the test for the debugging
      */
 
-    public void test() throws TesterSuccessException, TesterFailedException {
-        int[] sizes = {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192,12288};
+    public void test() throws DebuggerSuccessException, DebuggerFailedException {
+        int[] sizes = {1,2,4,8,16,32,64,128,256,512,1024,2048,4096,8192};
 
         for(int i = 0; i < sizes.length; i++) {
             size = sizes[i];
@@ -246,6 +239,6 @@ public class STAllocatorDebugger {
 
         System.out.println("PASSED: " + amountOfTests + " RANDOM FREE");
         
-        throw new TesterSuccessException();
+        throw new DebuggerSuccessException();
     }
 }

@@ -4,21 +4,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import Debugger.*;
 
 public class Arena {
-    // list of blocks
-    private ConcurrentLinkedQueue<Block> memoryBlocks;
-
-    private BackingStore backingStore;
-
-    // size of the blocks in de arena
-    private int blockSize;
-
-    // size of the pages in the blocks of the arena
-    private int pageSize;
-
-    private Logger logger;
+    private ConcurrentLinkedQueue<Block> memoryBlocks;  // ConcurrentLinkedQueue of memory blocks
+    private BackingStore backingStore;                  // BackingStore to use
+    private int blockSize;                              // Size of the blocks in the arena
+    private int pageSize;                               // Size of the pages in the blocks in the arena
+    private Logger logger;                              // Logger to use
 
     /**
-     * @param blockSize
+     * @param blockSize is the size of the blocks in the arena
      * 
      * Constructor for an arena with an equal block and page size.
      */
@@ -33,8 +26,8 @@ public class Arena {
     }
 
     /**
-     * @param blockSize
-     * @param pageSize
+     * @param blockSize is the size of the blocks in the arena
+     * @param pageSize is the size of the pages in the blocks of the arena
      * 
      * Constructor for an arena with a specific block and page size.
      */
@@ -49,7 +42,7 @@ public class Arena {
     }
 
     /**
-     * @return int
+     * @return the size of the blocks in the arena
      * 
      * Get the nidividual size of the memory blocks in the arena.
      */
@@ -59,7 +52,7 @@ public class Arena {
     }
 
     /**
-     * @return int
+     * @return the size of the pages in the blocks in the arena
      * 
      * Get the size of the pages in the memory blocks in the arena.
      */
@@ -69,7 +62,7 @@ public class Arena {
     }
 
     /**
-     * @return
+     * @return the address of the allocation
      * 
      * Method to allocate a page in the arena
      */
@@ -90,35 +83,34 @@ public class Arena {
     }
 
     /**
-     * @param address
-     * @throws AllocatorException
+     * @param address is the address that has to be freed
+     * @throws AllocatorException when the address is not present in the arena
      * 
      * Method to free an address from the arena.
      */
 
-    public void free(Long address) throws AllocatorException, ArenaException {
+    public void free(Long address) throws ArenaException {
         for(Block block : memoryBlocks){
             if(block.isAccessible(address)) {
-                try {
+                    try {
                     block.free(address);
-                } catch (BlockException e) {
-                    memoryBlocks.remove(block);
-                    backingStore.munmap(block.getStartAddress(), block.getBlockSize());
-
-                    if(memoryBlocks.isEmpty())
-                        throw new ArenaException("No blocks in the arena");
-                }
-
-                return;
-            }
+                    return;
+                } catch(BlockException e) {
+                    if(memoryBlocks.size() > 1) {
+                        memoryBlocks.remove(block);
+                        backingStore.munmap(block.getStartAddress(), block.getBlockSize());
+                        return;
+                    }
+                }    
+            }    
         }
 
-        throw new AllocatorException("Page not present in arena");
+        throw new ArenaException("Page not present in arena");
     }
 
     /**
-     * @param address
-     * @return
+     * @param address is the address to check
+     * @return if the address is allocated
      * 
      * Method to check if the arena is accessible on a specific address.
      */
@@ -128,8 +120,9 @@ public class Arena {
     }
 
     /**
-     * @param address
-     * @return
+     * @param address is the address to check
+     * @param range is the range after the address to check
+     * @return if the address and ranges is allocated
      * 
      * Method to check if the arena is accessible on a specific address and a given range after that address.
      */

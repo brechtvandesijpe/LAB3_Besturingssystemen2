@@ -2,49 +2,36 @@ package Debugger;
 
 import Allocator.Block;
 import Allocator.BlockException;
-import java.util.Random;
 import java.util.LinkedList;
 
 public class BlockDebugger {
-    private int blockSize;
+    private int blockSize;                  // Size of the block
+    private int pageSize;                   // Size of the pages
+    private Block block;                    // The block to test
+    private Long address;                   // The address of the allocation
+    private Logger logger;                  // The logger to use
+    private String[] states;                // Buffer to store the states of the block before a test fails
     
-    private int pageSize;
-    
-    private int amountOfPages;
-
-    private Block block;
-    
-    private Long address;
-    
-    private Logger logger;
-    
-    private boolean debug;
-
-    private String[] states;
-    
-    public BlockDebugger(boolean debug) throws BlockException {
+    public BlockDebugger() throws BlockException {
         address = null;
-        
         logger = Logger.getInstance();
-
-        this.debug = debug;
     }
 
     /**
-     * @param startAddress
-     * @param range
-     * @param condition
-     * @throws TesterFailedException
+     * @param startAddress is the startaddress af the range to test
+     * @param range is the range of addresses to test
+     * @param condition is the condition that is expected
+     * @throws DebuggerFailedException when the condition is not met
      * @return void
      * 
      * Test a condition for a range of addresses. If not met fail the debugger.
      */
 
-    public void testRange(Long startAddress, int range, boolean condition) throws TesterFailedException {
+    public void testRange(Long startAddress, int range, boolean condition) throws DebuggerFailedException {
         if(block.isAccessible(startAddress, range) != condition) {
             printStates();
             logger.log("Expected " + condition + " for address " + startAddress + (range <= 1 ? "" : " and range " + range), 1);
-            throw new TesterFailedException("                                                         TEST FAILED");
+            throw new DebuggerFailedException("                                                         TEST FAILED");
         }
     }
 
@@ -59,22 +46,15 @@ public class BlockDebugger {
     }
 
     /**
-     * @throws BlockException
-     * @throws TesterFailedException
-     * @throws TesterSuccessException
+     * @throws BlockException 
+     * @throws DebuggerFailedException
+     * @throws DebuggerSuccessException
      * @return void
      * 
      * Excecute the test for the debugging
      */
 
-    public void test() throws BlockException, TesterFailedException, TesterSuccessException {
-
-        /*
-         * ===========================================================================
-         * ============================SINGLETHREADED TEST============================
-         * ===========================================================================
-         */
-
+    public void test() throws BlockException, DebuggerFailedException, DebuggerSuccessException {
         int[][] sizes = {{Block.UNIT_BLOCK_SIZE, 1},
                          {Block.UNIT_BLOCK_SIZE, 2},
                          {Block.UNIT_BLOCK_SIZE, 4},
@@ -96,7 +76,6 @@ public class BlockDebugger {
 
             block = new Block(0L, pageSize, blockSize);
             
-            amountOfPages = blockSize / pageSize;
             address = block.allocate();
             states[0] = block.toString();
 
@@ -122,10 +101,8 @@ public class BlockDebugger {
             testRange(address, pageSize + 1, false);
             testRange(address2, pageSize + 1, false);
 
-            try {
-                block.free(address2);
-                states[2] = block.toString();
-            } catch (BlockException e) {}
+            block.free(address2);
+            states[2] = block.toString();
 
             
             // Check a range of addresses address for address
@@ -148,8 +125,9 @@ public class BlockDebugger {
             
             try {
                 block.free(address);
-                states[3] = block.toString();
-            } catch (BlockException e) {}
+            } catch(BlockException e) {}
+
+            states[3] = block.toString();
 
             // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++) {
@@ -186,7 +164,6 @@ public class BlockDebugger {
 
             block = new Block(0L, pageSize, blockSize);
             
-            amountOfPages = blockSize / pageSize;
             address = block.allocate();
             states[0] = block.toString();
 
@@ -205,8 +182,9 @@ public class BlockDebugger {
             
             try {
                 block.free(address);
-                states[1] = block.toString();
-            } catch (BlockException e) {}
+            } catch(BlockException e) {}
+            
+            states[1] = block.toString();
 
             // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++)
@@ -254,6 +232,11 @@ public class BlockDebugger {
             fullFLag = true;
         }
 
+        if(!fullFLag) {
+            logger.log("Not all addresses were allocated when they should have been");
+            throw new DebuggerFailedException();
+        }
+
         try {
             for(Long a : addresses) {
                 block.free(a);
@@ -272,22 +255,15 @@ public class BlockDebugger {
                 testRange(a, pageSize + 1, false);
             }
         } catch(BlockException e) {
-            // BLock MUST throw up an exception when empty to guarantee the working of the allocator
             emptyFlag = true;
-
-            if(fullFLag)
-                System.out.println("PASSED: Random allocation");
-            else {
-                logger.log("Not all addresses were allocated when they should have been");
-                throw new TesterFailedException();
-            }
         }
 
         if(!emptyFlag) {
             logger.log("Not all addresses were freed when they should have been");
-            throw new TesterFailedException();
+            throw new DebuggerFailedException();
         }
 
-        throw new TesterSuccessException();
+        System.out.println("PASSED: Full allocation");
+        throw new DebuggerSuccessException();
     }
 }

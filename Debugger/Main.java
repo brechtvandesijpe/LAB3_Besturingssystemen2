@@ -8,13 +8,13 @@ public class Main {
         System.out.println("                                                       BLOCK DEBUGGER");
         
         try {
-            BlockDebugger blockTester = new BlockDebugger(false);
+            BlockDebugger blockTester = new BlockDebugger();
             blockTester.test();
-        } catch(TesterFailedException e) {
+        } catch(DebuggerFailedException e) {
             System.out.println("                                                         TEST FAILED");
             System.out.println("============================================================================================================================");
             return;
-        } catch(TesterSuccessException e) {
+        } catch(DebuggerSuccessException e) {
             System.out.println("                                                   ALL BLOCK TESTS PASSED");
             System.out.println("============================================================================================================================");
         }
@@ -22,13 +22,13 @@ public class Main {
         System.out.println("                                                       ARENA DEBUGGER");
 
         try {
-            ArenaDebugger arenaTester = new ArenaDebugger(false);
+            ArenaDebugger arenaTester = new ArenaDebugger();
             arenaTester.test();
-        } catch(TesterFailedException e) {
+        } catch(DebuggerFailedException e) {
             System.out.println("                                                         TEST FAILED");
             System.out.println("============================================================================================================================");
             return;
-        } catch(TesterSuccessException e) {
+        } catch(DebuggerSuccessException e) {
             System.out.println("                                                   ALL ARENA TESTS PASSED");
             System.out.println("============================================================================================================================");
         }
@@ -36,13 +36,13 @@ public class Main {
             System.out.println("                                                      STALLOCATOR DEBUGGER");
 
         try {
-            STAllocatorDebugger allocatorTester = new STAllocatorDebugger(false);
+            STAllocatorDebugger allocatorTester = new STAllocatorDebugger();
             allocatorTester.test();
-        } catch(TesterFailedException e) {
+        } catch(DebuggerFailedException e) {
             System.out.println("                                                         TEST FAILED");
             System.out.println("============================================================================================================================");
             return;
-        } catch(TesterSuccessException e) {
+        } catch(DebuggerSuccessException e) {
             System.out.println("                                                 ALL STALLOCATOR TESTS PASSED");
             System.out.println("============================================================================================================================");
         }
@@ -50,12 +50,12 @@ public class Main {
         System.out.println("                                                     ALLOCATOR DEBUGGER");
 
         try {
-            AllocatorDebugger allocatorTester = new AllocatorDebugger(false);
+            AllocatorDebugger allocatorTester = new AllocatorDebugger();
             allocatorTester.test();
-        } catch(TesterFailedException e7) {
+        } catch(DebuggerFailedException e7) {
             System.out.println("                                                         TEST FAILED");
             System.out.println("============================================================================================================================");
-        } catch(TesterSuccessException e) {
+        } catch(DebuggerSuccessException e) {
             System.out.println("                                                 ALL ALLOCATOR TESTS PASSED");
             System.out.println("============================================================================================================================");
         }

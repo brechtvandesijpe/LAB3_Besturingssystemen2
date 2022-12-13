@@ -1,57 +1,45 @@
 package Debugger;
 
 import Allocator.Arena;
-import Allocator.AllocatorException;
 import Allocator.ArenaException;
 import Allocator.Block;
 
 public class ArenaDebugger {
-    private int blockSize;
+    private int blockSize;                  // The size of the blocks
+    private int pageSize;                   // The size of the pages
+    private Arena arena;                    // The arena to test
+    private Long address;                   // The address of the allocation
+    private Logger logger;                  // The logger to use
+    private String[] states;                // Buffer to store the states of the arena before a test fails
     
-    private int pageSize;
-
-    private int amountOfPages;
-    
-    private Arena arena;
-
-    private Long address;
-
-    private Logger logger;
-
-    private boolean debug;
-
-    private String[] states;
-    
-    public ArenaDebugger(boolean debug) {
+    public ArenaDebugger() {
         this.blockSize = 0;
         this.pageSize = 0;
-        
         address = null;
-
         logger = Logger.getInstance();
-
-        this.debug = debug;
     }
 
     /**
-     * @param startAddress
-     * @param range
-     * @param condition
-     * @throws TesterFailedException
+     * @param startAddress is the startaddress af the range to test
+     * @param range is the range of addresses to test
+     * @param condition is the condition that is expected
+     * @throws DebuggerFailedException when the condition is not met
      * @return void
      * 
      * Test a condition for a range of addresses. If not met fail the debugger.
      */
 
-    public void testRange(Long startAddress, int range, boolean condition) throws TesterFailedException {
+    public void testRange(Long startAddress, int range, boolean condition) throws DebuggerFailedException {
         if(arena.isAccessible(startAddress, range) != condition) {
             printStates();
             logger.log("Expected " + condition + " for address " + startAddress + (range <= 1 ? "" : " and range " + range), 1);
-            throw new TesterFailedException();
+            throw new DebuggerFailedException();
         }
     }
 
     /**
+     * @return ovid
+     * 
      * Print the trace of states during the test
      */
 
@@ -62,14 +50,14 @@ public class ArenaDebugger {
     }
 
     /**
-     * @throws TesterFailedException
-     * @throws TesterSuccessException
+     * @throws DebuggerFailedException when a test fails
+     * @throws DebuggerSuccessException when all tests are passed
      * @return void
      * 
      * Excecute the test for the debugging
      */
 
-    public void test() throws TesterFailedException, TesterSuccessException {
+    public void test() throws DebuggerFailedException, DebuggerSuccessException {
         int[][] sizes = {{Block.UNIT_BLOCK_SIZE, 1},
                          {Block.UNIT_BLOCK_SIZE, 2},
                          {Block.UNIT_BLOCK_SIZE, 4},
@@ -91,7 +79,6 @@ public class ArenaDebugger {
 
             arena = new Arena(blockSize, pageSize);
             
-            amountOfPages = blockSize / pageSize;
             address = arena.allocate();
             states[0] = arena.toString();
 
@@ -120,8 +107,7 @@ public class ArenaDebugger {
             try {
                 arena.free(address2);
                 states[2] = arena.toString();
-            } catch (ArenaException e) {}
-
+            } catch(ArenaException e) {}
             
             // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++) {
@@ -144,7 +130,7 @@ public class ArenaDebugger {
             try {
                 arena.free(address);
                 states[3] = arena.toString();
-            } catch (ArenaException e) {}
+            } catch(ArenaException e) {}
 
             // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++) {
@@ -181,7 +167,6 @@ public class ArenaDebugger {
 
             arena = new Arena(blockSize);
             
-            amountOfPages = blockSize / pageSize;
             address = arena.allocate();
             states[0] = arena.toString();
 
@@ -201,7 +186,7 @@ public class ArenaDebugger {
             try {
                 arena.free(address);
                 states[1] = arena.toString();
-            } catch (ArenaException e) {}
+            } catch(ArenaException e) {}
 
             // Check a range of addresses address for address
             for(int offset = 0; offset < pageSize; offset++) {
@@ -220,6 +205,6 @@ public class ArenaDebugger {
             System.out.println("PASSED: Pagesize " + pageSize);
         }
             
-        throw new TesterSuccessException();
+        throw new DebuggerSuccessException();
     }
 }
